@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Sovereign Web Toggle",
+  "version": "1.0",
+  "description": "Toggles connection to the local Sovereign Web daemon.",
+  "icons": {
+      "128": "icon.png"
+  },
+  "permissions": [
+    "proxy",
+    "storage"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
