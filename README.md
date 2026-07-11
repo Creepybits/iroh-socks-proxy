@@ -73,9 +73,9 @@ ___
 This project is a collaborative, open-source effort to build a truly sovereign web overlay. Since this is currently a conceptual MVP, **contributions, feedback, and pull requests are highly welcomed!** 
 
 Specifically, we are looking for help with:
-*   **Systems Programming (Rust):** Building the local Root CA certificate manager and handling dynamic TLS handshakes (Phase 4) [46].
-*   **P2P Architecture:** Integrating the `iroh` node for content routing and block streaming (Phase 3) [32, 40].
-*   **Browser Extension (JS):** Optimizing the Manifest V3 background port and PAC configurations [14, 16].
+*   **Systems Programming (Rust):** Building the local Root CA certificate manager and handling dynamic TLS handshakes (Phase 4).
+*   **P2P Architecture:** Integrating the `iroh` node for content routing and block streaming (Phase 3).
+*   **Browser Extension (JS):** Optimizing the Manifest V3 background port and PAC configurations.
 
 Feel free to open an issue, start a discussion, or submit a pull request!
 ___
