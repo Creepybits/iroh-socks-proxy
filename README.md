@@ -2,7 +2,7 @@
 
 A local-first, decentralized P2P web overlay for digital sovereignty. This repository hosts a proof-of-concept decoupled architecture designed to bypass the execution constraints of Manifest V3 by running a native local daemon in Rust alongside a lightweight browser toggle switch.
 
-> **Socio-Political Context & Architectural Feasibility:** For the deep dive into the threat landscape (such as EU Chat Control and biometric transport surveillance), traffic obfuscation strategies, and the detailed cryptographic design behind this protocol, read the full research paper on my digital workbench: **[zanno.se]([https://zanno.se/](https://zanno.se/blueprint-for-a-sovereign-web/))** 
+> **Socio-Political Context & Architectural Feasibility:** For the deep dive into the threat landscape (such as EU Chat Control and biometric transport surveillance), traffic obfuscation strategies, and the detailed cryptographic design behind this protocol, read the full research paper on my digital workbench: **[https://zanno.se/](https://zanno.se/blueprint-for-a-sovereign-web/)** 
 
 ---
 
