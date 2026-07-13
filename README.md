@@ -59,7 +59,23 @@ The console will print: `Sovereign daemon loopback proxy bound to 127.0.0.1:9999
 1. Click the Sovereign Web Toggle icon in your browser toolbar and switch it to ON (it will display green Isolated Sandbox).
 2. In your browser bar, navigate to: `http://testsite.anon/`
 3. Your browser will instantly display your decentralized landing page, served directly from your local Rust daemon. Standard clearnet sites (like Google or Wikipedia) will continue to route normally through the proxy fallback.
+___
+## Known Issues & Workarounds
 
+### ⚠️ Brave Browser: Permanent Proxy Latching Bug
+There is a profile-level state bug specifically affecting **Brave Browser** where the browser permanently locks its internal proxy routing to the local loopback interface (`127.0.0.1:9999`) once the extension is initialized.
+
+*   **The Symptom:** The extension toggle becomes unresponsive, and Brave remains permanently locked to the proxy even if the extension is disabled or completely uninstalled from the browser.
+*   **The Behavior:** 
+    *   If the local Rust daemon is **running**, you will still have normal access to both standard clearnet sites and `.anon` domains (because the daemon's fallback proxy routing is active).
+    *   If the local daemon is **stopped**, all internet connectivity inside that specific Brave profile will be completely blocked.
+*   **Observed Scope:** This issue is **not** present in Google Chrome (where the proxy properly detaches on toggle/uninstall). Testing is currently pending on Vivaldi, Edge, and Firefox.
+
+#### 💡 Temporary Workaround
+If you are developing, testing, or running the prototype in Brave, **do not load the extension in your primary browsing profile.** Instead, use a dedicated profile:
+1. Click your profile icon in Brave and select **Add** to create a new, clean user profile.
+2. Load the unpacked extension *only* within this dedicated test profile.
+3. This keeps your main Brave profile completely untouched and allows you to safely test the SOCKS5 daemon's routing behavior.
 ___
 ## Technical Roadmap
 - [x] Phase 1: Core async SOCKS5 proxy loopback bound to 127.0.0.1:9999
