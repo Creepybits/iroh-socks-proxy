@@ -1,4 +1,5 @@
 # iroh-socks-proxy
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21499415.svg)](https://doi.org/10.5281/zenodo.21499415)
 
 A local-first, decentralized P2P web overlay for digital sovereignty. This repository hosts a proof-of-concept decoupled architecture designed to bypass the execution constraints of Manifest V3 by running a native local daemon in Rust alongside a lightweight browser toggle switch.
 
