@@ -113,7 +113,7 @@ async fn handle_client(mut client_stream: TcpStream) -> Result<(), Box<dyn std::
     println!("Intercepted request to: {}", target_address);
 
 
-    // 3. Check if this is a custom Sovereign domain (.anon or .zil)
+    // 3. Check if this is a custom Sovereign domain (.anon)
     let is_sovereign_domain = target_address.contains(".anon");
 
     if is_sovereign_domain {
