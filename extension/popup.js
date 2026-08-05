@@ -1,19 +1,18 @@
 const toggle = document.getElementById('toggle');
 const statusText = document.getElementById('status');
 
-// Load current state on popup open
+// Sync UI state on popup activation
 chrome.storage.local.get(['sovereignEnabled'], (result) => {
   const enabled = result.sovereignEnabled || false;
   toggle.checked = enabled;
   updateStatusText(enabled);
 });
 
-// Listen for toggle changes
 toggle.addEventListener('change', () => {
   const enable = toggle.checked;
 
   if (enable) {
-    // Configure browser to route all traffic to local SOCKS5 loopback
+    // Single proxy mode: Route ALL browser traffic into the daemon loopback
     const config = {
       mode: "fixed_servers",
       rules: {
@@ -22,18 +21,32 @@ toggle.addEventListener('change', () => {
           host: "127.0.0.1",
           port: 9999
         },
-        bypassList: ["localhost", "127.0.0.1"]
+        // Empty bypass list guarantees local OS stack & telemetry cannot leak around the proxy
+        bypassList: []
       }
     };
 
     chrome.proxy.settings.set({ value: config, scope: 'regular' }, () => {
       chrome.storage.local.set({ sovereignEnabled: true });
+      
+      // Harden WebRTC against direct UDP interface leaks
+      if (chrome.privacy && chrome.privacy.network && chrome.privacy.network.webRTCIPHandlingPolicy) {
+        chrome.privacy.network.webRTCIPHandlingPolicy.set({
+          value: "disable_non_proxied_udp"
+        });
+      }
+      
       updateStatusText(true);
     });
   } else {
-    // Revert back to direct connection
+    // Revert proxy and restore default WebRTC policies
     chrome.proxy.settings.clear({ scope: 'regular' }, () => {
       chrome.storage.local.set({ sovereignEnabled: false });
+      
+      if (chrome.privacy && chrome.privacy.network && chrome.privacy.network.webRTCIPHandlingPolicy) {
+        chrome.privacy.network.webRTCIPHandlingPolicy.clear({ scope: 'regular' });
+      }
+      
       updateStatusText(false);
     });
   }
