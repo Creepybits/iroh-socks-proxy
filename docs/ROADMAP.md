@@ -29,7 +29,7 @@ Rules for working on these are in `CLAUDE.md`.
     the real startup message, the new command-line flag, and how to run the tests.
     Fix the broken code blocks in the Quickstart.
 
-- [ ] **3. Release builds**
+- [x] **3. Release builds**
   - GitHub Actions workflow that, when a tag like `v0.2.0` is pushed, builds the daemon for
     Windows, Linux and macOS and attaches the binaries plus a zip of `extension/` to a
     GitHub Release.
