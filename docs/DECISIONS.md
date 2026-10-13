@@ -2,6 +2,19 @@
 
 Newest first. Each entry: date, decision, why, alternatives considered.
 
+## 2026-10-13: Release builds (task 3)
+
+- **Decision:** A tag `v*` triggers `.github/workflows/release.yml`. It builds Linux
+  x86_64, Windows x86_64 and macOS (Apple chip and Intel), packs each with the README
+  (`.zip` on Windows, `.tar.gz` elsewhere so the file stays executable), zips `extension/`,
+  and publishes with GitHub's own `gh` tool. If the release already exists (made in the web
+  UI), files are attached to it. The daemon version goes to 0.2.0 to match the first tag.
+- **Why:** `gh` is preinstalled on GitHub's runners, so no third-party release action is
+  needed. Pull requests that touch the workflow build without publishing, so it gets tested.
+- **Alternatives:** A third-party action such as `softprops/action-gh-release`; Linux ARM
+  builds (need cross-compilation, can be added later); signing builds (needs paid
+  certificates from Apple/Microsoft, owner decision).
+
 ## 2026-10-13: Extension background worker (task 2)
 
 - **Decision:** A background service worker syncs the proxy with the stored toggle state

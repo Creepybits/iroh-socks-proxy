@@ -1,0 +1,84 @@
+name: Release
+
+# Pushing a tag like v0.2.0 (or creating a release with a new tag in the GitHub
+# web UI) builds the daemon for each platform and publishes a GitHub Release.
+# Pull requests that change this file and manual runs only build, so the
+# workflow can be tested without publishing anything.
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths: ['.github/workflows/release.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Build
+        working-directory: daemon
+        run: cargo build --release --locked --target ${{ matrix.target }}
+      - name: Package
+        shell: bash
+        run: |
+          name="sovereign-daemon-${{ github.ref_name }}-${{ matrix.target }}"
+          name="${name//\//-}"
+          mkdir -p dist "$name"
+          bin="daemon/target/${{ matrix.target }}/release/sovereign-daemon"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp "$bin.exe" README.md "$name/"
+            7z a "dist/$name.zip" "$name" > /dev/null
+          else
+            cp "$bin" README.md "$name/"
+            tar -czf "dist/$name.tar.gz" "$name"
+          fi
+          ls -l dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: daemon-${{ matrix.target }}
+          path: dist/*
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Zip the browser extension
+        run: |
+          (cd extension && zip -r "../dist/sovereign-web-extension-${GITHUB_REF_NAME}.zip" .)
+          ls -l dist
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # If the release already exists (made in the web UI), just attach files.
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes
+          fi
