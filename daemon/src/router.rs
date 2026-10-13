@@ -1,55 +1,68 @@
 //! Decides what happens to a connection based on the host the browser asked for.
 
+use crate::p2p::{self, PeerId};
 use crate::socks::TargetHost;
+
+/// The built-in demo site, served without any network.
+pub const LANDING_HOST: &str = "testsite.anon";
 
 /// What the daemon does with a connection.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Route {
-    /// A `.anon` host: serve the built-in landing page.
+    /// `testsite.anon`: serve the built-in landing page.
     Landing,
-    /// Anything else (Air-Gap Mode): refuse with "host unreachable".
+    /// `<peer key>.anon`: tunnel to that peer over Iroh.
+    Tunnel(PeerId),
+    /// Anything else (Air-Gap Mode), including `.anon` names that aren't valid
+    /// keys: refuse with "host unreachable".
     Blocked,
 }
 
 pub fn route(host: &TargetHost) -> Route {
-    match host {
-        TargetHost::Domain(name) if is_anon_domain(name) => Route::Landing,
-        _ => Route::Blocked,
+    let TargetHost::Domain(name) = host else {
+        return Route::Blocked;
+    };
+    let normalized = name.strip_suffix('.').unwrap_or(name);
+    if normalized.eq_ignore_ascii_case(LANDING_HOST) {
+        return Route::Landing;
     }
-}
-
-/// True for names ending in `.anon`, ignoring case and one trailing dot
-/// (`TEST.ANON` and `test.anon.` both count). A bare `anon` does not.
-pub fn is_anon_domain(name: &str) -> bool {
-    let name = name.strip_suffix('.').unwrap_or(name).to_ascii_lowercase();
-    name.len() > ".anon".len() && name.ends_with(".anon")
+    match p2p::parse_anon_address(name) {
+        Some(peer) => Route::Tunnel(peer),
+        None => Route::Blocked,
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use iroh::SecretKey;
     use std::net::{Ipv4Addr, Ipv6Addr};
 
-    #[test]
-    fn anon_check() {
-        assert!(is_anon_domain("testsite.anon"));
-        assert!(is_anon_domain("TEST.ANON"));
-        assert!(is_anon_domain("Mixed.Anon"));
-        assert!(is_anon_domain("testsite.anon."));
-        assert!(!is_anon_domain("anon"));
-        assert!(!is_anon_domain(".anon"));
-        assert!(!is_anon_domain("example.com"));
-        assert!(!is_anon_domain("anon.example.com"));
-        assert!(!is_anon_domain("notanon"));
+    fn domain(name: &str) -> TargetHost {
+        TargetHost::Domain(name.into())
     }
 
     #[test]
-    fn routes() {
-        assert_eq!(route(&TargetHost::Domain("x.anon".into())), Route::Landing);
-        assert_eq!(
-            route(&TargetHost::Domain("example.com".into())),
-            Route::Blocked
-        );
+    fn landing_page_host() {
+        assert_eq!(route(&domain("testsite.anon")), Route::Landing);
+        assert_eq!(route(&domain("TESTSITE.ANON")), Route::Landing);
+        assert_eq!(route(&domain("testsite.anon.")), Route::Landing);
+    }
+
+    #[test]
+    fn key_addresses_tunnel() {
+        let id = SecretKey::generate().public();
+        let addr = p2p::anon_address(&id);
+        assert_eq!(route(&domain(&addr)), Route::Tunnel(id));
+        assert_eq!(route(&domain(&addr.to_uppercase())), Route::Tunnel(id));
+    }
+
+    #[test]
+    fn everything_else_is_blocked() {
+        assert_eq!(route(&domain("other.anon")), Route::Blocked);
+        assert_eq!(route(&domain("anon")), Route::Blocked);
+        assert_eq!(route(&domain("example.com")), Route::Blocked);
+        assert_eq!(route(&domain("testsite.anon.example.com")), Route::Blocked);
         assert_eq!(
             route(&TargetHost::Ipv4(Ipv4Addr::LOCALHOST)),
             Route::Blocked

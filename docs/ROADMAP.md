@@ -43,7 +43,7 @@ opens an encrypted Iroh connection to that peer, and the HTTP bytes are tunnelle
 through it, much like a Tor onion service. Content-addressed storage (`iroh-blobs`)
 comes later.
 
-- [ ] **4. Iroh identity and tunnel**
+- [x] **4. Iroh identity and tunnel**
   - The daemon creates an Iroh endpoint at startup, with a secret key stored in a data
     directory (`--data-dir`, default: the OS-appropriate app data folder) so the identity
     survives restarts. Print the daemon's own `.anon` address at startup.
@@ -82,3 +82,6 @@ comes later.
 - Phase 4: local root CA for HTTPS on `.anon`.
 - Extension shows whether the daemon is running.
 - Test the extension on Vivaldi, Edge and Firefox.
+- Run our own Iroh relay / address lookup server, or make the n0 defaults configurable, so
+  n0.computer doesn't see users' IP addresses and keys.
+- Reuse one Iroh connection per peer instead of one per browser connection (faster pages).
