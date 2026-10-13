@@ -41,7 +41,6 @@ pub fn anon_address(id: &PeerId) -> String {
 
 /// The first 8 characters of a peer's address, enough to tell peers apart in logs.
 pub fn short_id(id: &PeerId) -> String {
-    id.to_z32()[..8].to_string()
     id.to_z32().chars().take(8).collect()
 }
 
