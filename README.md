@@ -13,17 +13,17 @@ Unlike legacy P2P browsers that try to run heavy network stacks directly in sand
 
 ```text
 [ Browser (Chrome/Brave) ] --(Proxy Toggle ON)--> [ SOCKS5 Loopback (Port 9999) ]
-           |                                                 |
-  [ Standard Clearnet ] <---(Default Fallback)--- [ Local Rust Daemon (Tokio) ]
+                                                             |
+  [ Standard Clearnet ] <---X--(Air-Gap: blocked)-- [ Local Rust Daemon (Tokio) ]
                                                              |
                                                    [ .anon Custom TLD ]
                                                              |
-                                                   [ P2P Overlay (Iroh) ]
+                                                   [ P2P Overlay (Iroh, planned) ]
 ```
 
 1. **The Browser Extension (Manifest V3):** Purely acts as a configuration switch, utilizing `chrome.proxy` to route browser traffic to the local loopback interface on port `9999`.
 2. **The Local Daemon (Rust / Tokio):** A high-performance background service that acts as a SOCKS5 proxy, intercepts requests, and handles alternative domain resolution locally.
-3. **P2P Integration (Iroh):** Serves as the decentralized backbone, bypassing centralized DNS registries and streaming content securely from peers.
+3. **P2P Integration (Iroh, planned):** Will serve as the decentralized backbone, bypassing centralized DNS registries and streaming content securely from peers.
 
 ---
 
@@ -31,7 +31,9 @@ Unlike legacy P2P browsers that try to run heavy network stacks directly in sand
 
 - **Async SOCKS5 Proxy:** Built natively in Rust using the asynchronous `tokio` runtime.
 - **Sleek MV3 Toggle:** A minimalist, dark-mode browser extension configured with custom branding.
-- **Custom TLD Interception:** Automatic interception and local resolution of `.anon` domains, bypassed entirely from standard DNS.
+- **Custom TLD Interception:** Automatic interception and local resolution of `.anon` domains, bypassed entirely from standard DNS. For now every `.anon` name shows the same built-in landing page.
+- **Air-Gap Mode:** Everything that is not `.anon` (normal websites, raw IP addresses) is refused with the SOCKS reply "host unreachable". Normal websites are intentionally **not** forwarded: reaching them through other nodes in the network is a later, still undecided design step. While the toggle is ON, only `.anon` sites load.
+- **WebRTC Leak Protection:** While the toggle is ON, the extension tells the browser not to send WebRTC traffic outside the proxy (where it could reveal your real IP address).
 
 ---
 
@@ -45,11 +47,26 @@ Unlike legacy P2P browsers that try to run heavy network stacks directly in sand
 1. Navigate to the `/daemon` directory:
    ```bash
    cd daemon
-2. Build and run the asynchronous service:  
+   ```
+2. Build and run the asynchronous service:
    ```bash
    cargo run
+   ```
 
-The console will print: `Sovereign daemon loopback proxy bound to 127.0.0.1:9999`  
+The console will print:
+
+```text
+⚡ Sovereign daemon bound strictly to 127.0.0.1:9999
+🛡️  Air-Gap Mode Active: Non-.anon traffic will be instantly dropped.
+```
+
+To listen on a different address or port, pass `--listen` (the extension expects `127.0.0.1:9999`, so only change this if you know why):
+
+```bash
+cargo run -- --listen 127.0.0.1:9050
+```
+
+The daemon only accepts connections from your own computer by default. If you pass an address other than `127.0.0.1`, it prints a warning, because other machines could then use it. Run `cargo run -- --help` to see all options.
 
 ### Step 2: Load the Browser Extension
 1. Open your browser and navigate to `chrome://extensions/`
@@ -59,7 +76,16 @@ The console will print: `Sovereign daemon loopback proxy bound to 127.0.0.1:9999
 ### Step 3: Test Local Domain Interception
 1. Click the Sovereign Web Toggle icon in your browser toolbar and switch it to ON (it will display green Isolated Sandbox).
 2. In your browser bar, navigate to: `http://testsite.anon/`
-3. Your browser will instantly display your decentralized landing page, served directly from your local Rust daemon. Standard clearnet sites (like Google or Wikipedia) will continue to route normally through the proxy fallback.
+3. Your browser will instantly display your decentralized landing page, served directly from your local Rust daemon.
+4. Normal websites (like Google or Wikipedia) will **not** load while the toggle is ON: the daemon refuses them (Air-Gap Mode). Switch the toggle OFF to browse normally again.
+
+### Running the Tests
+```bash
+cd daemon
+cargo test
+```
+
+The tests never use the internet: they start the daemon on a free local port and talk SOCKS5 to it. The same checks (`cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`) run automatically on Linux, Windows and macOS for every pull request.
 ___
 ## Known Issues & Workarounds
 
@@ -68,8 +94,9 @@ There is a profile-level state bug specifically affecting **Brave Browser** wher
 
 *   **The Symptom:** The extension toggle becomes unresponsive, and Brave remains permanently locked to the proxy even if the extension is disabled or completely uninstalled from the browser.
 *   **The Behavior:** 
-    *   If the local Rust daemon is **running**, you will still have normal access to both standard clearnet sites and `.anon` domains (because the daemon's fallback proxy routing is active).
+    *   If the local Rust daemon is **running**, only `.anon` domains load; normal websites are refused (Air-Gap Mode).
     *   If the local daemon is **stopped**, all internet connectivity inside that specific Brave profile will be completely blocked.
+*   **Possible Fix (unconfirmed):** Since version 1.1, the extension re-applies or clears the proxy setting every time the browser starts, to match the toggle. This may unstick Brave; it has not been confirmed yet.
 *   **Observed Scope:** This issue is **not** present in Google Chrome (where the proxy properly detaches on toggle/uninstall). Testing is currently pending on Vivaldi, Edge, and Firefox.
 
 #### 💡 Temporary Workaround
@@ -81,7 +108,7 @@ ___
 ## Technical Roadmap
 - [x] Phase 1: Core async SOCKS5 proxy loopback bound to 127.0.0.1:9999
 - [x] Phase 2: Manifest V3 extension proxy-management interface and local `.anon` domain interception
-- [ ] Phase 3: Integrate the Iroh P2P protocol (`iroh-blobs` & `iroh-docs`) to resolve `.anon` domains via peer cryptographic keypairs and BLAKE3 content-addressable storage.
+- [ ] Phase 3: Integrate the Iroh P2P protocol: a `.anon` address is a peer's public key, and visiting it tunnels the browser's traffic to that peer over an encrypted Iroh connection (similar to a Tor onion service). Content-addressed storage (`iroh-blobs`) comes later. See `docs/ROADMAP.md`.
 - [ ] Phase 4: Implement automatic, local Root CA certificate generation to handle dynamic local TLS handshakes (resolving the browser's "Not Secure" warning over loopback).
 
 ___

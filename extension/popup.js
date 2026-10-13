@@ -1,3 +1,4 @@
+// applyProxy and clearProxy come from proxy.js, loaded first by popup.html.
 const toggle = document.getElementById('toggle');
 const statusText = document.getElementById('status');
 
@@ -10,46 +11,12 @@ chrome.storage.local.get(['sovereignEnabled'], (result) => {
 
 toggle.addEventListener('change', () => {
   const enable = toggle.checked;
+  const change = enable ? applyProxy : clearProxy;
 
-  if (enable) {
-    // Single proxy mode: Route ALL browser traffic into the daemon loopback
-    const config = {
-      mode: "fixed_servers",
-      rules: {
-        singleProxy: {
-          scheme: "socks5",
-          host: "127.0.0.1",
-          port: 9999
-        },
-        // Empty bypass list guarantees local OS stack & telemetry cannot leak around the proxy
-        bypassList: []
-      }
-    };
-
-    chrome.proxy.settings.set({ value: config, scope: 'regular' }, () => {
-      chrome.storage.local.set({ sovereignEnabled: true });
-      
-      // Harden WebRTC against direct UDP interface leaks
-      if (chrome.privacy && chrome.privacy.network && chrome.privacy.network.webRTCIPHandlingPolicy) {
-        chrome.privacy.network.webRTCIPHandlingPolicy.set({
-          value: "disable_non_proxied_udp"
-        });
-      }
-      
-      updateStatusText(true);
-    });
-  } else {
-    // Revert proxy and restore default WebRTC policies
-    chrome.proxy.settings.clear({ scope: 'regular' }, () => {
-      chrome.storage.local.set({ sovereignEnabled: false });
-      
-      if (chrome.privacy && chrome.privacy.network && chrome.privacy.network.webRTCIPHandlingPolicy) {
-        chrome.privacy.network.webRTCIPHandlingPolicy.clear({ scope: 'regular' });
-      }
-      
-      updateStatusText(false);
-    });
-  }
+  change(() => {
+    chrome.storage.local.set({ sovereignEnabled: enable });
+    updateStatusText(enable);
+  });
 });
 
 function updateStatusText(enabled) {
