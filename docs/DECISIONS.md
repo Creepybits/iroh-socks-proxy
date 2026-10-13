@@ -2,6 +2,29 @@
 
 Newest first. Each entry: date, decision, why, alternatives considered.
 
+## 2026-10-13: Docker image and bunny.net hosting (task 7)
+
+- **Decision:** A two-stage `Dockerfile` at the repository root: build with the official
+  `rust:1.97-slim-trixie` image, run on `debian:trixie-slim`. The CA certificate bundle is
+  copied from the build image (no `apt` in the runtime stage). The image publishes the
+  repo's `site/` folder by default (`--serve /site`) and keeps the key in `/data`. An
+  entrypoint script takes ownership of `/data` when started as root (hosting platforms
+  often mount root-owned volumes) and then drops to the unprivileged `sovereign` user with
+  `setpriv`. Published to `ghcr.io/creepybits/iroh-socks-proxy` (linux/amd64, which
+  bunny.net requires) with tags `latest`, the version, and the commit.
+- **Why:** The owner wanted an always-on site without running their own computer, and
+  already has a bunny.net account; Magic Containers runs Docker images and has persistent
+  volumes. ghcr.io needs no extra account or secrets (the workflow uses GitHub's built-in
+  token). Docker also makes running the daemon easier for others.
+- **Hosting rule:** exactly one region and one instance. Each instance gets its own blank
+  volume, so a second instance would create a second key and a different address.
+- **Not verified:** whether bunny's dashboard requires an endpoint for an app that only
+  connects outward; the guide says what to pick if it does (Anycast, never a public
+  endpoint for the SOCKS port).
+- **Alternatives:** Docker Hub (extra account and secret); a distroless/scratch image
+  (smaller, but no shell for the ownership fix and harder to debug); Fly.io or a VPS
+  (also fine, the image works anywhere).
+
 ## 2026-10-13: Security review fixes and limits (task 6)
 
 - **Reviewed:** SOCKS parsing, routing, the tunnel and serving code, the extension, and

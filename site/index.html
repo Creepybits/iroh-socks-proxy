@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>You made it to a .anon site</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+    main { max-width: 36rem; padding: 2rem 1.5rem; }
+    h1 { color: #a855f7; font-size: 2rem; margin: 0 0 1rem; }
+    p { color: #94a3b8; }
+    strong { color: #e2e8f0; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>⚡ You made it.</h1>
+    <p>
+      This page didn't come from a normal web server. It travelled from one
+      Sovereign daemon to yours over an <strong>encrypted peer-to-peer Iroh
+      connection</strong>, found by its key instead of a domain registry.
+    </p>
+    <p>
+      No DNS lookup, no certificate authority, no hosting company deciding
+      what stays online. Anyone running the daemon can publish a page like
+      this with <strong>--serve &lt;folder&gt;</strong>.
+    </p>
+  </main>
+</body>
+</html>

@@ -121,6 +121,34 @@ You need two computers, each with the daemon (see Option A or B above). Call the
 * Your address stays the same as long as you keep the `secret.key` file (see Step 1).
 * If the page doesn't load, check that both daemons print a `.anon` address (no Iroh warning) and that the visitor typed the address exactly.
 
+### Run with Docker
+Every push to `Master` publishes a ready-made image, `ghcr.io/creepybits/iroh-socks-proxy`. It runs as an unprivileged user and keeps its secret key in `/data`, so **always attach a volume there**, or the `.anon` address changes on every restart.
+
+**Publish a site** (by default the image publishes the repo's `site/` folder):
+
+```bash
+docker run -d --name anon-site --restart unless-stopped \
+  -v anon-data:/data \
+  ghcr.io/creepybits/iroh-socks-proxy
+docker logs anon-site   # shows your .anon address
+```
+
+To publish your own folder instead, add `-v /path/to/my-site:/site:ro`. Anything after the image name replaces the default `--serve /site`, e.g. `--forward 127.0.0.1:8000`.
+
+**Browse `.anon` sites** with the daemon in Docker (instead of running it directly):
+
+```bash
+docker run -d --name anon-proxy --restart unless-stopped \
+  -p 127.0.0.1:9999:9999 -v anon-proxy:/data \
+  ghcr.io/creepybits/iroh-socks-proxy --listen 0.0.0.0:9999
+```
+
+Inside the container the proxy has to listen on `0.0.0.0` so Docker can reach it, which is why it prints a warning; `-p 127.0.0.1:...` keeps it reachable only from your own computer. Never use `-p 9999:9999` without the `127.0.0.1:` part.
+
+**Always-on hosting:** to keep a small site online without your own computer, see [docs/DEPLOY-BUNNY.md](docs/DEPLOY-BUNNY.md) (bunny.net Magic Containers, no command line needed). Any host that keeps one container running with a persistent volume at `/data` works the same way.
+
+To build the image yourself: `docker build -t sovereign-daemon .` in the repository root.
+
 ### Running the Tests
 ```bash
 cd daemon
