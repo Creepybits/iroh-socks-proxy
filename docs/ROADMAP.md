@@ -72,6 +72,15 @@ comes later.
     leak clearnet traffic or DNS lookups, path traversal, panics on bad input.
   - Fix what's small, list the rest under "Later" with an explanation.
 
+## Hosting
+
+- [x] **7. Docker image and always-on hosting**
+  - A `Dockerfile` that builds the daemon and publishes the repo's `site/` folder,
+    running as a non-root user with the secret key on a `/data` volume.
+  - GitHub Actions workflow that publishes the image to ghcr.io on pushes to `Master`
+    and version tags.
+  - A no-command-line guide for hosting on bunny.net Magic Containers.
+
 ## Later (not now)
 
 - **Reaching normal websites through other nodes** ("exit nodes", like Tor). This is the
