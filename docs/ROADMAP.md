@@ -19,7 +19,7 @@ Rules for working on these are in `CLAUDE.md`.
   - GitHub Actions workflow: fmt, clippy and test on Linux, Windows and macOS.
   - Commit `Cargo.lock`.
 
-- [ ] **2. Extension fixes and README sync**
+- [x] **2. Extension fixes and README sync**
   - `manifest.json` is missing the `privacy` permission, so the WebRTC leak protection in
     `popup.js` silently does nothing. Add it.
   - Add a small background service worker that re-applies or clears the proxy setting on

@@ -2,6 +2,17 @@
 
 Newest first. Each entry: date, decision, why, alternatives considered.
 
+## 2026-10-13: Extension background worker (task 2)
+
+- **Decision:** A background service worker syncs the proxy with the stored toggle state
+  when the browser starts and when the extension is installed or updated. The proxy
+  on/off code moved to a shared `extension/proxy.js` used by both the popup and the worker.
+- **Why:** One copy of the proxy settings means the popup and the worker can't drift
+  apart. Running on install/update as well means reloading the extension also clears a
+  leftover proxy setting when the toggle is OFF.
+- **Alternatives:** Popup sends a message to the worker, which does all the work (more
+  moving parts); duplicating the proxy settings in both files.
+
 ## 2026-10-13: Task 1 details (daemon cleanup)
 
 - **Decision:** A domain name that is empty or not valid UTF-8 now gets the SOCKS reply
