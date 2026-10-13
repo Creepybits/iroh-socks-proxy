@@ -12,6 +12,7 @@ use tokio::net::{TcpListener, TcpStream};
 
 use sovereign_daemon::p2p::{self, P2p};
 use sovereign_daemon::server;
+use sovereign_daemon::site::{self, Site};
 use sovereign_daemon::socks::{
     ADDR_TYPE_DOMAIN, ADDR_TYPE_IPV4, REP_HOST_UNREACHABLE, REP_SUCCESS,
 };
@@ -101,8 +102,9 @@ async fn invalid_anon_name_is_unreachable() {
 /// back the request line, so the test can see the request arrived intact.
 fn spawn_peer(peer: Arc<P2p>) {
     tokio::spawn(async move {
-        while let Some(Ok(mut tunnel)) = peer.accept_tunnel().await {
+        while let Some(incoming) = peer.next_incoming().await {
             tokio::spawn(async move {
+                let mut tunnel = incoming.accept().await.unwrap();
                 let mut request = Vec::new();
                 let mut buf = [0u8; 1024];
                 while !request.windows(4).any(|w| w == b"\r\n\r\n") {
@@ -123,8 +125,7 @@ fn spawn_peer(peer: Arc<P2p>) {
                 );
                 tunnel.write_all(response.as_bytes()).await.unwrap();
                 tunnel.shutdown().await.unwrap();
-                // Keep the tunnel open until the daemon has read everything.
-                let _ = tunnel.read(&mut buf).await;
+                tunnel.closed().await;
             });
         }
     });
@@ -157,4 +158,41 @@ async fn unknown_peer_is_unreachable() {
     )
     .await;
     assert_eq!(rep, REP_HOST_UNREACHABLE);
+}
+
+/// Two daemons: one publishes a folder with `--serve`, the other visits it
+/// through its SOCKS proxy, like a browser would.
+#[tokio::test]
+async fn served_folder_is_reachable_through_tunnel() {
+    let tmp = std::env::temp_dir().join(format!("sovereign-e2e-site-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(tmp.join("site")).unwrap();
+    std::fs::write(tmp.join("site/index.html"), "<h1>my anon site</h1>").unwrap();
+    std::fs::write(tmp.join("secret"), "TOP SECRET").unwrap();
+
+    let publisher = Arc::new(P2p::bind_local(SecretKey::generate(), true).await.unwrap());
+    let site = Arc::new(Site::folder(&tmp.join("site")).unwrap());
+    tokio::spawn(site::serve_tunnels(publisher.clone(), site));
+
+    let visitor = Arc::new(P2p::bind_local(SecretKey::generate(), false).await.unwrap());
+    visitor.add_peer_addr(publisher.id(), publisher.local_addrs()[0]);
+    let daemon = start_daemon(Some(visitor)).await;
+    let host = p2p::anon_address(&publisher.id());
+
+    let home = http_get(daemon, &host).await;
+    assert!(home.starts_with("HTTP/1.1 200 OK"), "got: {}", home);
+    assert!(home.ends_with("<h1>my anon site</h1>"));
+
+    let (mut stream, rep) = socks_connect(daemon, ADDR_TYPE_DOMAIN, &domain(&host), 80).await;
+    assert_eq!(rep, REP_SUCCESS);
+    stream
+        .write_all(b"GET /../secret HTTP/1.1\r\nHost: x\r\n\r\n")
+        .await
+        .unwrap();
+    let mut response = String::new();
+    stream.read_to_string(&mut response).await.unwrap();
+    assert!(response.starts_with("HTTP/1.1 404"), "got: {}", response);
+    assert!(!response.contains("TOP SECRET"));
+
+    std::fs::remove_dir_all(&tmp).unwrap();
 }
