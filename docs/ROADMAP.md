@@ -40,7 +40,8 @@ Rules for working on these are in `CLAUDE.md`.
 
 Design (see `docs/DECISIONS.md`): a `.anon` address is a peer's public key. Visiting it
 opens an encrypted Iroh connection to that peer, and the HTTP bytes are tunnelled
-through it, much like a Tor onion service. Content-addressed storage (`iroh-blobs`)
+through it. Like a Tor onion service, the address is a key; unlike Tor, the connection is
+direct, so it is encrypted but not anonymous. Content-addressed storage (`iroh-blobs`)
 comes later.
 
 - [x] **4. Iroh identity and tunnel**
@@ -83,6 +84,18 @@ comes later.
 
 ## Later (not now)
 
+- **Anonymity** (today connections are encrypted but direct, so sites see visitors' IP
+  addresses; see README "Security & Privacy"). Options, smallest first:
+  - **Separate visiting key:** browse with a fresh random key (per session, or per site)
+    instead of the daemon's publishing key, so different sites can't link your visits.
+    Small change, but it doesn't hide your IP address.
+  - **Route through Tor:** carry the Iroh traffic over Tor (e.g. with the `arti` crate,
+    Tor's Rust implementation), so neither side learns the other's IP address. Reuses
+    Tor's existing network instead of building our own; slower, and needs research into
+    how well Iroh works over Tor.
+  - **Our own multi-hop routing** through other daemons (onion routing, like Tor). Only
+    anonymous once many independent people run relay nodes, and very hard to get right;
+    a long-term research project, not a feature.
 - **Reaching normal websites through other nodes** ("exit nodes", like Tor). This is the
   long-term idea. It's a big design question with legal implications for whoever runs an
   exit node, so it needs a deliberate decision by the owner before any code.

@@ -2,6 +2,18 @@
 
 Newest first. Each entry: date, decision, why, alternatives considered.
 
+## 2026-10-13: Say plainly that `.anon` is encrypted, not anonymous
+
+- **Decision:** README and roadmap now state that connections are end-to-end encrypted but
+  direct, so sites see visitors' IP addresses, a site's host can be found, n0's servers see
+  who connects to whom, and one key per daemon lets sites link visits. "Anonymity" options
+  are listed under "Later" (separate visiting key, routing over Tor, own multi-hop routing).
+- **Why:** The owner asked whether this is as anonymous as Tor and had assumed a bigger
+  network would make it anonymous by default. It doesn't: anonymity comes from routing
+  through other peers, which isn't built. The name `.anon` and the earlier "much like a Tor
+  onion service" wording could mislead users who need real anonymity.
+- **Alternatives:** Renaming the `.anon` TLD (bigger change, owner's call; not done).
+
 ## 2026-10-13: Docker image and bunny.net hosting (task 7)
 
 - **Decision:** A two-stage `Dockerfile` at the repository root: build with the official
