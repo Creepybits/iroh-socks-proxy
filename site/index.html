@@ -11,19 +11,31 @@
       min-height: 100vh;
       display: grid;
       place-items: center;
-      background: #0f172a;
+      background: #0b1016; /* matches the logo banner */
       color: #e2e8f0;
       font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
       line-height: 1.6;
     }
     main { max-width: 36rem; padding: 2rem 1.5rem; }
-    h1 { color: #a855f7; font-size: 2rem; margin: 0 0 1rem; }
+    h1 { color: #f2553c; font-size: 2rem; margin: 0 0 1rem; }
+    .logo {
+      display: block; width: 100%; height: auto; margin: 0 0 2rem;
+      /* Fade the banner's edges into the page background. */
+      --fade-x: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+      --fade-y: linear-gradient(to bottom, transparent, #000 10%, #000 90%, transparent);
+      -webkit-mask-image: var(--fade-x), var(--fade-y);
+      -webkit-mask-composite: source-in;
+      mask-image: var(--fade-x), var(--fade-y);
+      mask-composite: intersect;
+    }
+    .nowrap { white-space: nowrap; }
     p { color: #94a3b8; }
     strong { color: #e2e8f0; }
   </style>
 </head>
 <body>
   <main>
+    <img class="logo" src="/logo.webp" alt="Creepybits" width="1016" height="209">
     <h1>⚡ You made it.</h1>
     <p>
       This page didn't come from a normal web server. It travelled from one
@@ -33,7 +45,7 @@
     <p>
       No DNS lookup, no certificate authority, no hosting company deciding
       what stays online. Anyone running the daemon can publish a page like
-      this with <strong>--serve &lt;folder&gt;</strong>.
+      this with <strong class="nowrap">--serve &lt;folder&gt;</strong>.
     </p>
   </main>
 </body>
