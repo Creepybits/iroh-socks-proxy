@@ -32,7 +32,7 @@ Unlike legacy P2P browsers that try to run heavy network stacks directly in sand
 - **Async SOCKS5 Proxy:** Built natively in Rust using the asynchronous `tokio` runtime.
 - **Sleek MV3 Toggle:** A minimalist, dark-mode browser extension configured with custom branding.
 - **Custom TLD Interception:** Automatic interception and local resolution of `.anon` domains, bypassed entirely from standard DNS. `testsite.anon` shows a built-in landing page that works even offline.
-- **Peer Addresses over Iroh:** Every daemon has its own `.anon` address: its public key, written as 52 lowercase letters and digits, e.g. `zf6cpab6btawcun738ayciuyufppjj5gaxshs97srgu6f6kkfs7o.anon`. Visiting such an address opens an encrypted [Iroh](https://iroh.computer) connection to that peer and passes the browser's traffic through it, much like a Tor onion service. The key is created on first start and kept in a data folder, so the address never changes. Other `.anon` names that are not valid keys are refused.
+- **Peer Addresses over Iroh:** Every daemon has its own `.anon` address: its public key, written as 52 lowercase letters and digits, e.g. `zf6cpab6btawcun738ayciuyufppjj5gaxshs97srgu6f6kkfs7o.anon`. Visiting such an address opens an encrypted [Iroh](https://iroh.computer) connection to that peer and passes the browser's traffic through it. Like a Tor onion service, the address is a key and needs no domain registry; **unlike** Tor, the connection is direct, so it is encrypted but not anonymous (see [Security & Privacy](#security--privacy)). The key is created on first start and kept in a data folder, so the address never changes. Other `.anon` names that are not valid keys are refused.
 - **Publish Your Own Site:** `--serve <folder>` publishes a folder of web pages at your `.anon` address, using a small built-in file server. `--forward 127.0.0.1:<port>` publishes a web server already running on your computer instead. See [Publish your own .anon site](#publish-your-own-anon-site).
 - **Air-Gap Mode:** Everything that is not `.anon` (normal websites, raw IP addresses) is refused with the SOCKS reply "host unreachable". Normal websites are intentionally **not** forwarded: reaching them through other nodes in the network is a later, still undecided design step. While the toggle is ON, only `.anon` sites load.
 - **WebRTC Leak Protection:** While the toggle is ON, the extension tells the browser not to send WebRTC traffic outside the proxy (where it could reveal your real IP address).
@@ -168,7 +168,13 @@ What this prototype protects against, and what it doesn't (reviewed in roadmap t
 * **The proxy is only reachable from your computer** (`127.0.0.1`), unless you deliberately pass another `--listen` address.
 * **Limits against overload:** at most 256 browser connections and 64 visiting peers at once; a client that doesn't finish its handshake within 10 seconds is disconnected; requests to a published site are limited to 8 KiB of headers and 10 seconds.
 * **Published sites only expose what you put in the folder:** no paths outside it (including through shortcuts/symlinks), and no hidden files such as `.git` or `.env`. `--forward` only reaches web servers on your own computer.
-* **What others can see:** traffic between peers is end-to-end encrypted by Iroh. n0.computer's relay and lookup servers (used by default) can see your IP address and your key, but not your traffic. A site you visit sees your key-based connection, not your browsing elsewhere. Like any website, the publisher of a `.anon` site sees what you request from it.
+* **Encrypted, but not anonymous (unlike Tor).** Traffic between peers is end-to-end encrypted by Iroh: nobody in between can read it or see which pages you open. But the connection is direct, not passed through several relays like Tor, so:
+  * a `.anon` site you visit **sees your IP address**, just like a normal website would;
+  * visitors can find out **where a site is hosted** (its server's IP address);
+  * n0.computer's relay and lookup servers (used by default) see the IP addresses and keys of who connects to whom, though not the content;
+  * your daemon uses **the same key for every site you visit**, so different sites could recognise you as the same visitor.
+
+  A growing network doesn't change this by itself: anonymity needs traffic deliberately routed through other people's computers, which isn't built yet (see "Later" in `docs/ROADMAP.md`). What you do get today: encryption, and addresses no registrar, DNS provider or certificate authority can take away. Don't rely on this project where being identified would put you at risk; use Tor for that.
 * **Not done yet** (see "Later" in `docs/ROADMAP.md`): no HTTPS inside the tunnel (it's already encrypted end to end by Iroh, but the browser shows "Not Secure"), no protection against a peer that keeps a connection open but idle, and n0's servers are used by default.
 ___
 ## Known Issues & Workarounds
@@ -192,7 +198,7 @@ ___
 ## Technical Roadmap
 - [x] Phase 1: Core async SOCKS5 proxy loopback bound to 127.0.0.1:9999
 - [x] Phase 2: Manifest V3 extension proxy-management interface and local `.anon` domain interception
-- [ ] Phase 3: Integrate the Iroh P2P protocol: a `.anon` address is a peer's public key, and visiting it tunnels the browser's traffic to that peer over an encrypted Iroh connection (similar to a Tor onion service). Content-addressed storage (`iroh-blobs`) comes later. See `docs/ROADMAP.md`.
+- [ ] Phase 3: Integrate the Iroh P2P protocol: a `.anon` address is a peer's public key, and visiting it tunnels the browser's traffic to that peer over an encrypted Iroh connection (key-based addresses like a Tor onion service, but direct rather than anonymous). Content-addressed storage (`iroh-blobs`) comes later. See `docs/ROADMAP.md`.
 - [ ] Phase 4: Implement automatic, local Root CA certificate generation to handle dynamic local TLS handshakes (resolving the browser's "Not Secure" warning over loopback).
 
 ___
