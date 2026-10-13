@@ -2,6 +2,29 @@
 
 Newest first. Each entry: date, decision, why, alternatives considered.
 
+## 2026-10-13: Security review fixes and limits (task 6)
+
+- **Reviewed:** SOCKS parsing, routing, the tunnel and serving code, the extension, and
+  anything that could leak clearnet traffic or DNS lookups.
+- **Fixed:**
+  - SOCKS handshake (and the landing page's first read) time out after 10 s; previously a
+    silent client held its task forever.
+  - At most 256 browser connections at once (more wait), and at most 64 visiting peers at
+    once (more are refused immediately, so strangers can't make us queue).
+  - `--forward` gives up connecting to the local server after 5 s.
+  - Hidden files and folders (`.git`, `.env`, …) are never served by `--serve`.
+  - One theoretical panic spot (slicing the key string) replaced with a non-panicking form.
+  - Tests use tokio's `test-util` explicitly instead of relying on a dependency enabling it.
+- **Checked, no change needed:** no `unwrap`/`expect` on network or browser data; the daemon
+  never resolves DNS for the browser (Chrome sends the host name to a SOCKS5 proxy) and only
+  ever connects out to Iroh and the loopback `--forward` target; the extension's bypass
+  list is empty and WebRTC is restricted; error pages don't echo requests; logs contain
+  host names only, never paths or contents.
+- **Limits chosen:** 256/64/10 s/8 KiB are generous for one person browsing or a small
+  personal site, and small enough to keep a laptop responsive under abuse.
+- **Left for later** (listed in the roadmap): idle timeouts after the handshake, per-peer
+  quotas, incognito support, a daemon-status indicator, and encrypting the key at rest.
+
 ## 2026-10-13: Serving a site: both `--serve` and `--forward` (task 5)
 
 - **Decision:** Both options, mutually exclusive.
