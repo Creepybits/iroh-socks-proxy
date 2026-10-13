@@ -5,7 +5,7 @@ Rules for working on these are in `CLAUDE.md`.
 
 ## Foundation
 
-- [ ] **1. Clean up, test, CI**
+- [x] **1. Clean up, test, CI**
   - Split `daemon/src/main.rs` into modules (e.g. `socks.rs` for the protocol parsing,
     `router.rs` for deciding what happens to a target host, `main.rs` for startup).
   - Add a command-line flag for the listen address (default `127.0.0.1:9999`), using `clap`.

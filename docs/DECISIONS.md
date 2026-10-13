@@ -2,6 +2,17 @@
 
 Newest first. Each entry: date, decision, why, alternatives considered.
 
+## 2026-10-13: Task 1 details (daemon cleanup)
+
+- **Decision:** A domain name that is empty or not valid UTF-8 now gets the SOCKS reply
+  "host unreachable" (same as any other refused host). The `.anon` check ignores case and
+  one trailing dot (`test.anon.`). The README is not changed in this PR; task 2 already
+  covers syncing it (startup message, `--listen` flag, how to run tests).
+- **Why:** "Host unreachable" is what Air-Gap Mode already sends for refused hosts, so the
+  browser behaves the same either way. Leaving the README to task 2 keeps the PRs
+  separate as the roadmap plans.
+- **Alternatives:** SOCKS "general failure" (0x01) for bad names; updating the README now.
+
 ## 2026-10-13: Clearnet stays blocked for now (Air-Gap Mode)
 
 - **Decision:** Non-`.anon` traffic is refused. The README's older claim that normal sites
