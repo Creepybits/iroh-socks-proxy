@@ -27,11 +27,12 @@ Unlike legacy P2P browsers that try to run heavy network stacks directly in sand
 
 ---
 
-## Current MVP Features (Phase 1 & 2)
+## Current Features
 
 - **Async SOCKS5 Proxy:** Built natively in Rust using the asynchronous `tokio` runtime.
 - **Sleek MV3 Toggle:** A minimalist, dark-mode browser extension configured with custom branding.
-- **Custom TLD Interception:** Automatic interception and local resolution of `.anon` domains, bypassed entirely from standard DNS. For now every `.anon` name shows the same built-in landing page.
+- **Custom TLD Interception:** Automatic interception and local resolution of `.anon` domains, bypassed entirely from standard DNS. `testsite.anon` shows a built-in landing page that works even offline.
+- **Peer Addresses over Iroh:** Every daemon has its own `.anon` address: its public key, written as 52 lowercase letters and digits, e.g. `zf6cpab6btawcun738ayciuyufppjj5gaxshs97srgu6f6kkfs7o.anon`. Visiting such an address opens an encrypted [Iroh](https://iroh.computer) connection to that peer and passes the browser's traffic through it, much like a Tor onion service. The key is created on first start and kept in a data folder, so the address never changes. Other `.anon` names that are not valid keys are refused. (Publishing your own site is the next roadmap step; until then, peers don't answer tunnels.)
 - **Air-Gap Mode:** Everything that is not `.anon` (normal websites, raw IP addresses) is refused with the SOCKS reply "host unreachable". Normal websites are intentionally **not** forwarded: reaching them through other nodes in the network is a later, still undecided design step. While the toggle is ON, only `.anon` sites load.
 - **WebRTC Leak Protection:** While the toggle is ON, the extension tells the browser not to send WebRTC traffic outside the proxy (where it could reveal your real IP address).
 
@@ -67,7 +68,10 @@ The console will print:
 ```text
 ⚡ Sovereign daemon bound strictly to 127.0.0.1:9999
 🛡️  Air-Gap Mode Active: Non-.anon traffic will be instantly dropped.
+🔑 Your .anon address: <52 characters>.anon
 ```
+
+The secret key behind that address is stored in a `secret.key` file in your app data folder (`~/.local/share/sovereign-web` on Linux, `~/Library/Application Support/sovereign-web` on macOS, `%APPDATA%\sovereign-web` on Windows). Keep it private: anyone with that file can pretend to be your address. Use `--data-dir <folder>` to keep it somewhere else. If Iroh can't start, the daemon says so and keeps serving `testsite.anon`.
 
 To listen on a different address or port, pass `--listen` (the extension expects `127.0.0.1:9999`, so only change this if you know why):
 

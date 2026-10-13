@@ -2,6 +2,33 @@
 
 Newest first. Each entry: date, decision, why, alternatives considered.
 
+## 2026-10-13: Iroh identity and tunnel details (task 4)
+
+- **Decision:** Iroh 1.3.0, all Iroh code in `daemon/src/p2p.rs`.
+  - Key encoding is **z-base-32** (`to_z32`/`from_z32` from Iroh): lowercase, 52 characters,
+    no padding. It's the base32 variant Iroh and pkarr already use for DNS names, so no
+    extra crate is needed.
+  - The secret key is a hex text file `secret.key` in `--data-dir` (default: the OS app
+    data folder via the `dirs` crate + `sovereign-web`), created with owner-only permissions
+    on Unix.
+  - The daemon joins the public Iroh network with the `N0` preset: n0's relay servers, and
+    it publishes its address under its key so others can find it by key alone.
+  - The tunnel carries raw bytes with no header; the port the browser asked for is ignored,
+    because a peer serves one site. One Iroh connection per browser connection; peers are
+    given up on after 30 seconds ("host unreachable").
+  - If Iroh fails to start, the daemon keeps running with only `testsite.anon`.
+  - Until task 5 the daemon accepts no incoming tunnels (no ALPN registered).
+- **Why:** Smallest thing that works end to end and matches the roadmap's design.
+- **Trade-offs to know:** (1) Iroh's UDP socket listens on all network interfaces. That's
+  how peer-to-peer connections reach you; it only speaks authenticated, encrypted QUIC and
+  refuses protocols we don't register. The SOCKS proxy itself stays on 127.0.0.1. (2) The
+  `N0` preset contacts n0.computer's relay and DNS servers, so they see your IP address and
+  key (not your traffic, which is end-to-end encrypted). Running your own relay is under
+  "Later".
+- **Alternatives:** RFC 4648 base32 (needs another crate, not what Iroh uses); a small
+  tunnel header with the port (not needed yet); reusing one connection per peer (faster
+  page loads, more code; can come later).
+
 ## 2026-10-13: Release builds (task 3)
 
 - **Decision:** A tag `v*` triggers `.github/workflows/release.yml`. It builds Linux
