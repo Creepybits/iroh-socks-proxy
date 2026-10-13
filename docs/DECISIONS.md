@@ -2,6 +2,27 @@
 
 Newest first. Each entry: date, decision, why, alternatives considered.
 
+## 2026-10-13: Serving a site: both `--serve` and `--forward` (task 5)
+
+- **Decision:** Both options, mutually exclusive.
+  - `--serve <folder>`: a minimal built-in HTTP/1.1 file server (`daemon/src/site.rs`). One
+    GET per tunnel, `Connection: close`, `index.html` as the default page, a small
+    extension → content-type table, 8 KiB / 10 s limit on request headers. Paths are
+    percent-decoded, then refused if they contain `..`, backslashes, NUL or anything the OS
+    treats as more than a plain name (e.g. `C:`); after resolving symlinks the file must
+    still be inside the folder. Errors are plain 4xx pages.
+  - `--forward <addr>`: copies the tunnel byte-for-byte to a local web server. Only
+    loopback addresses are accepted, so publishing can't make the daemon a gateway to other
+    machines or the internet (that would weaken Air-Gap Mode from the other side).
+  - Incoming tunnels finish their handshake in their own task (a slow peer can't block
+    others). After answering, the publisher waits up to 10 s for the visitor to hang up so
+    the last bytes aren't cut off.
+- **Why:** `--serve` is what a non-developer needs (no other software). `--forward` costs a
+  few lines and lets anyone publish a real web app; the owner knows Python, so
+  `python -m http.server` + `--forward` is a natural path too.
+- **Alternatives:** A web-server crate such as `hyper`/`axum` (more dependencies than this
+  needs); only one of the two options.
+
 ## 2026-10-13: Iroh identity and tunnel details (task 4)
 
 - **Decision:** Iroh 1.3.0, all Iroh code in `daemon/src/p2p.rs`.
@@ -17,7 +38,8 @@ Newest first. Each entry: date, decision, why, alternatives considered.
     because a peer serves one site. One Iroh connection per browser connection; peers are
     given up on after 30 seconds ("host unreachable").
   - If Iroh fails to start, the daemon keeps running with only `testsite.anon`.
-  - Until task 5 the daemon accepts no incoming tunnels (no ALPN registered).
+  - Without `--serve`/`--forward` the daemon accepts no incoming tunnels (no ALPN
+    registered).
 - **Why:** Smallest thing that works end to end and matches the roadmap's design.
 - **Trade-offs to know:** (1) Iroh's UDP socket listens on all network interfaces. That's
   how peer-to-peer connections reach you; it only speaks authenticated, encrypted QUIC and

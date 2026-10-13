@@ -57,7 +57,7 @@ comes later.
   - Integration test: two endpoints in one test, connected by direct local address,
     a tunnelled HTTP request goes through and the response comes back.
 
-- [ ] **5. Serving a site**
+- [x] **5. Serving a site**
   - `--serve <dir>`: incoming tunnel connections are answered by a minimal static file
     server for that folder (GET only, no directory traversal outside the folder, `index.html`
     as the default page). Alternatively `--forward <127.0.0.1:port>` to forward to an existing

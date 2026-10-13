@@ -32,7 +32,8 @@ Unlike legacy P2P browsers that try to run heavy network stacks directly in sand
 - **Async SOCKS5 Proxy:** Built natively in Rust using the asynchronous `tokio` runtime.
 - **Sleek MV3 Toggle:** A minimalist, dark-mode browser extension configured with custom branding.
 - **Custom TLD Interception:** Automatic interception and local resolution of `.anon` domains, bypassed entirely from standard DNS. `testsite.anon` shows a built-in landing page that works even offline.
-- **Peer Addresses over Iroh:** Every daemon has its own `.anon` address: its public key, written as 52 lowercase letters and digits, e.g. `zf6cpab6btawcun738ayciuyufppjj5gaxshs97srgu6f6kkfs7o.anon`. Visiting such an address opens an encrypted [Iroh](https://iroh.computer) connection to that peer and passes the browser's traffic through it, much like a Tor onion service. The key is created on first start and kept in a data folder, so the address never changes. Other `.anon` names that are not valid keys are refused. (Publishing your own site is the next roadmap step; until then, peers don't answer tunnels.)
+- **Peer Addresses over Iroh:** Every daemon has its own `.anon` address: its public key, written as 52 lowercase letters and digits, e.g. `zf6cpab6btawcun738ayciuyufppjj5gaxshs97srgu6f6kkfs7o.anon`. Visiting such an address opens an encrypted [Iroh](https://iroh.computer) connection to that peer and passes the browser's traffic through it, much like a Tor onion service. The key is created on first start and kept in a data folder, so the address never changes. Other `.anon` names that are not valid keys are refused.
+- **Publish Your Own Site:** `--serve <folder>` publishes a folder of web pages at your `.anon` address, using a small built-in file server. `--forward 127.0.0.1:<port>` publishes a web server already running on your computer instead. See [Publish your own .anon site](#publish-your-own-anon-site).
 - **Air-Gap Mode:** Everything that is not `.anon` (normal websites, raw IP addresses) is refused with the SOCKS reply "host unreachable". Normal websites are intentionally **not** forwarded: reaching them through other nodes in the network is a later, still undecided design step. While the toggle is ON, only `.anon` sites load.
 - **WebRTC Leak Protection:** While the toggle is ON, the extension tells the browser not to send WebRTC traffic outside the proxy (where it could reveal your real IP address).
 
@@ -91,6 +92,34 @@ The daemon only accepts connections from your own computer by default. If you pa
 2. In your browser bar, navigate to: `http://testsite.anon/`
 3. Your browser will instantly display your decentralized landing page, served directly from your local Rust daemon.
 4. Normal websites (like Google or Wikipedia) will **not** load while the toggle is ON: the daemon refuses them (Air-Gap Mode). Switch the toggle OFF to browse normally again.
+
+### Publish your own .anon site
+You need two computers, each with the daemon (see Option A or B above). Call them the **publisher** (hosts the site) and the **visitor** (browses it). They can be on different networks; Iroh finds a way through, using a relay server if needed.
+
+**On the publisher:**
+1. Make a folder with an `index.html` in it, for example `my-site/index.html` containing `<h1>Hello from my .anon site</h1>`.
+2. Start the daemon with that folder (from the `daemon` folder if you build from source):
+   ```bash
+   cargo run -- --serve path/to/my-site
+   ```
+   With a downloaded build, run `sovereign-daemon --serve path/to/my-site` instead (Windows: `sovereign-daemon.exe --serve path\to\my-site`).
+3. The daemon prints your address, for example:
+   ```text
+   🔑 Your .anon address: qm5i78frnziufjtqjbkzqbqxr9qq9mo9sc5zm8skrfddz6gqmqzo.anon
+   📂 Publishing /home/you/my-site at that address.
+   ```
+   Copy that address and send it to the visitor. Keep the daemon running; the site is online only while it runs.
+
+**On the visitor:**
+1. Start the daemon normally (`cargo run` or `sovereign-daemon`) and turn the extension toggle ON.
+2. Open `http://<the address you received>/` in the browser. Note: `http://`, not `https://`.
+3. The first visit can take a few seconds while the two computers find each other.
+
+**Good to know:**
+* Only files inside the folder are served (requests like `/../secret` are refused), and only plain `GET` requests are answered. Subfolders work; a folder's `index.html` is its default page.
+* To publish something more dynamic, run any web server on the publisher (for a Python user: `python -m http.server 8000`) and start the daemon with `--forward 127.0.0.1:8000`. For safety, only addresses on the same computer are allowed.
+* Your address stays the same as long as you keep the `secret.key` file (see Step 1).
+* If the page doesn't load, check that both daemons print a `.anon` address (no Iroh warning) and that the visitor typed the address exactly.
 
 ### Running the Tests
 ```bash

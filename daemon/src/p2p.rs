@@ -14,7 +14,7 @@ use std::task::{Context, Poll};
 use std::time::Duration;
 
 use iroh::address_lookup::memory::MemoryLookup;
-use iroh::endpoint::{Connection, RecvStream, SendStream, presets};
+use iroh::endpoint::{Connection, Incoming, RecvStream, SendStream, presets};
 use iroh::{Endpoint, EndpointAddr, RelayMode, SecretKey};
 use tokio::io::{AsyncRead, AsyncWrite, Join, ReadBuf};
 
@@ -37,6 +37,11 @@ pub type Error = Box<dyn std::error::Error + Send + Sync>;
 /// The `.anon` address for a peer: its public key in z-base-32 (lowercase, no padding).
 pub fn anon_address(id: &PeerId) -> String {
     format!("{}{}", id.to_z32(), ANON_SUFFIX)
+}
+
+/// The first 8 characters of a peer's address, enough to tell peers apart in logs.
+pub fn short_id(id: &PeerId) -> String {
+    id.to_z32()[..8].to_string()
 }
 
 /// Parses `<52-char key>.anon` (any case, optional trailing dot). Returns `None` for
@@ -158,23 +163,34 @@ impl P2p {
             .map_err(|_| "timed out connecting to peer")?
     }
 
-    /// Waits for the next peer to open a tunnel to us. Returns `None` once the
-    /// endpoint is closed.
-    pub async fn accept_tunnel(&self) -> Option<Result<Tunnel, Error>> {
-        let incoming = self.endpoint.accept().await?;
-        Some(
-            async {
-                let conn = incoming.await?;
-                let (send, recv) = conn.accept_bi().await?;
-                Ok(Tunnel::new(conn, send, recv))
-            }
-            .await,
-        )
+    /// Waits for the next peer to start connecting. Returns `None` once the endpoint
+    /// is closed. Finish the handshake with [`IncomingTunnel::accept`], ideally in its
+    /// own task so one slow peer doesn't hold up the others.
+    pub async fn next_incoming(&self) -> Option<IncomingTunnel> {
+        self.endpoint.accept().await.map(IncomingTunnel)
     }
 
     /// Closes all connections gracefully.
     pub async fn close(&self) {
         self.endpoint.close().await;
+    }
+}
+
+/// A peer that has started connecting to us.
+pub struct IncomingTunnel(Incoming);
+
+impl IncomingTunnel {
+    /// Completes the handshake and waits for the peer's stream, giving up after
+    /// [`CONNECT_TIMEOUT`].
+    pub async fn accept(self) -> Result<Tunnel, Error> {
+        let accept = async {
+            let conn = self.0.await?;
+            let (send, recv) = conn.accept_bi().await?;
+            Ok::<_, Error>(Tunnel::new(conn, send, recv))
+        };
+        tokio::time::timeout(CONNECT_TIMEOUT, accept)
+            .await
+            .map_err(|_| "timed out accepting peer")?
     }
 }
 
@@ -203,6 +219,13 @@ impl Tunnel {
 
     pub fn peer(&self) -> PeerId {
         self.conn.remote_id()
+    }
+
+    /// Waits until the peer closes the connection. Call this after shutting down
+    /// the write side, so the last bytes reach the peer before we drop (and close)
+    /// the tunnel.
+    pub async fn closed(&self) {
+        self.conn.closed().await;
     }
 }
 
