@@ -33,6 +33,9 @@ const LINGER: Duration = Duration::from_secs(10);
 
 /// Answers every tunnel peers open to us with `site`, until the endpoint closes.
 pub async fn serve_tunnels(p2p: Arc<P2p>, site: Arc<Site>) {
+    while let Some(incoming) = p2p.next_incoming().await {
+        let site = site.clone();
+        tokio::spawn(async move {
     let slots = Arc::new(Semaphore::new(MAX_TUNNELS));
     while let Some(incoming) = p2p.next_incoming().await {
         let Ok(slot) = slots.clone().try_acquire_owned() else {
@@ -104,6 +107,7 @@ impl Site {
         match self {
             Site::Folder(root) => serve_file(root, tunnel).await,
             Site::Forward(addr) => {
+                let mut upstream = TcpStream::connect(addr).await?;
                 let mut upstream =
                     tokio::time::timeout(FORWARD_CONNECT_TIMEOUT, TcpStream::connect(addr))
                         .await
