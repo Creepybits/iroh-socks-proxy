@@ -131,6 +131,18 @@ The tests never use the internet: they start the daemon on a free local port and
 ### Making a Release (maintainers)
 On GitHub, open **Releases → Draft a new release**, type a new tag such as `v0.2.0` in **Choose a tag** and pick **Create new tag on publish**, then press **Publish release**. A workflow then builds the daemon for Windows, macOS and Linux and attaches the files plus the extension zip to that release within about 10 minutes (progress is under the **Actions** tab).
 ___
+## Security & Privacy
+
+What this prototype protects against, and what it doesn't (reviewed in roadmap task 6):
+
+* **Normal websites can't leak around it.** While the toggle is ON, the browser sends everything to the daemon, with nothing exempt. The daemon refuses every non-`.anon` host and never looks up names in DNS itself: the browser hands the name to the proxy, and `.anon` names are decoded locally. WebRTC is told to stay inside the proxy. If the daemon isn't running, pages fail to load instead of going around it.
+* **Browser limits to know about:** private/incognito windows are **not** covered unless you allow the extension in incognito, and Chrome always connects to `localhost` directly (that stays on your computer).
+* **The proxy is only reachable from your computer** (`127.0.0.1`), unless you deliberately pass another `--listen` address.
+* **Limits against overload:** at most 256 browser connections and 64 visiting peers at once; a client that doesn't finish its handshake within 10 seconds is disconnected; requests to a published site are limited to 8 KiB of headers and 10 seconds.
+* **Published sites only expose what you put in the folder:** no paths outside it (including through shortcuts/symlinks), and no hidden files such as `.git` or `.env`. `--forward` only reaches web servers on your own computer.
+* **What others can see:** traffic between peers is end-to-end encrypted by Iroh. n0.computer's relay and lookup servers (used by default) can see your IP address and your key, but not your traffic. A site you visit sees your key-based connection, not your browsing elsewhere. Like any website, the publisher of a `.anon` site sees what you request from it.
+* **Not done yet** (see "Later" in `docs/ROADMAP.md`): no HTTPS inside the tunnel (it's already encrypted end to end by Iroh, but the browser shows "Not Secure"), no protection against a peer that keeps a connection open but idle, and n0's servers are used by default.
+___
 ## Known Issues & Workarounds
 
 ### ⚠️ Brave Browser: Permanent Proxy Latching Bug

@@ -13,6 +13,7 @@ use std::time::Duration;
 
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::net::TcpStream;
+use tokio::sync::Semaphore;
 
 use crate::p2p::{self, P2p};
 
@@ -20,6 +21,12 @@ use crate::p2p::{self, P2p};
 const MAX_HEADER_BYTES: usize = 8 * 1024;
 /// How long a peer may take to send its request headers.
 const HEADER_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// Most peers served at once. Further tunnels are refused until one finishes, so
+/// strangers on the internet can't exhaust this computer's memory or sockets.
+const MAX_TUNNELS: usize = 64;
+/// How long `--forward` waits for the local web server to accept a connection.
+const FORWARD_CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// After answering, how long to wait for the peer to hang up before we do.
 const LINGER: Duration = Duration::from_secs(10);
@@ -29,6 +36,15 @@ pub async fn serve_tunnels(p2p: Arc<P2p>, site: Arc<Site>) {
     while let Some(incoming) = p2p.next_incoming().await {
         let site = site.clone();
         tokio::spawn(async move {
+    let slots = Arc::new(Semaphore::new(MAX_TUNNELS));
+    while let Some(incoming) = p2p.next_incoming().await {
+        let Ok(slot) = slots.clone().try_acquire_owned() else {
+            eprintln!("Too many visitors at once; refusing a tunnel.");
+            continue; // dropping `incoming` refuses the connection
+        };
+        let site = site.clone();
+        tokio::spawn(async move {
+            let _slot = slot;
             let mut tunnel = match incoming.accept().await {
                 Ok(tunnel) => tunnel,
                 Err(e) => {
@@ -92,6 +108,15 @@ impl Site {
             Site::Folder(root) => serve_file(root, tunnel).await,
             Site::Forward(addr) => {
                 let mut upstream = TcpStream::connect(addr).await?;
+                let mut upstream =
+                    tokio::time::timeout(FORWARD_CONNECT_TIMEOUT, TcpStream::connect(addr))
+                        .await
+                        .map_err(|_| {
+                            io::Error::new(
+                                io::ErrorKind::TimedOut,
+                                "local web server did not answer",
+                            )
+                        })??;
                 tokio::io::copy_bidirectional(tunnel, &mut upstream).await?;
                 Ok(())
             }
@@ -177,6 +202,8 @@ where
 /// Maps a request target like `/blog/post.html?x=1` to a file inside `root`.
 /// Returns `None` for anything that could escape the folder: `..` parts (also
 /// percent-encoded), backslashes, drive letters, or symlinks pointing outside.
+/// Hidden files and folders (names starting with `.`, like `.git` or `.env`) are
+/// never served either, since they often hold private data.
 pub fn resolve_path(root: &Path, target: &str) -> Option<PathBuf> {
     let path = target.split(['?', '#']).next()?;
     let decoded = percent_decode(path)?;
@@ -189,6 +216,7 @@ pub fn resolve_path(root: &Path, target: &str) -> Option<PathBuf> {
         match part {
             "" | "." => continue,
             ".." => return None,
+            hidden if hidden.starts_with('.') => return None,
             _ => {
                 // Reject anything the OS would treat as more than a plain name,
                 // e.g. "C:" on Windows.
@@ -370,6 +398,37 @@ mod tests {
             );
         }
         assert_eq!(resolve_path(&f.root, "/../secret"), None);
+    }
+
+    #[tokio::test]
+    async fn hidden_files_are_not_served() {
+        let f = Fixture::new("hidden");
+        std::fs::create_dir_all(f.root.join(".git")).unwrap();
+        std::fs::write(f.root.join(".git/config"), "PRIVATE").unwrap();
+        std::fs::write(f.root.join(".env"), "PRIVATE").unwrap();
+        for path in ["/.env", "/.git/config", "/%2egit/config", "/blog/../.env"] {
+            let response = f.get(path).await;
+            assert!(
+                response.starts_with("HTTP/1.1 404"),
+                "{} gave: {}",
+                path,
+                response
+            );
+            assert!(!response.contains("PRIVATE"));
+        }
+    }
+
+    #[tokio::test]
+    async fn slow_request_times_out() {
+        tokio::time::pause();
+        let f = Fixture::new("slow");
+        let (mut client, mut server) = duplex(1024);
+        client.write_all(b"GET / HTTP/1.1\r\n").await.unwrap(); // never finishes
+        f.site.handle(&mut server).await.unwrap();
+        drop(server);
+        let mut response = String::new();
+        client.read_to_string(&mut response).await.unwrap();
+        assert!(response.starts_with("HTTP/1.1 408"));
     }
 
     #[cfg(unix)]
