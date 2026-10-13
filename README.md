@@ -42,7 +42,7 @@ Unlike legacy P2P browsers that try to run heavy network stacks directly in sand
 ## Quickstart (How to Run and Test)
 
 ### Option A: Download a ready-made build (no Rust needed)
-Open the repository's **Releases** page on GitHub (right-hand side of the main page) and download:
+Open the [Releases page](https://github.com/Creepybits/iroh-socks-proxy/releases/latest) and download, under **Assets**:
 * the daemon for your system: `...-x86_64-pc-windows-msvc.zip` (Windows), `...-aarch64-apple-darwin.tar.gz` (Mac with Apple chip), `...-x86_64-apple-darwin.tar.gz` (older Intel Mac) or `...-x86_64-unknown-linux-gnu.tar.gz` (Linux);
 * `sovereign-web-extension-....zip`, the browser extension.
 
@@ -157,7 +157,7 @@ cargo test
 
 The tests never use the internet: they start the daemon on a free local port and talk SOCKS5 to it. The same checks (`cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`) run automatically on Linux, Windows and macOS for every pull request.
 ### Making a Release (maintainers)
-On GitHub, open **Releases → Draft a new release**, type a new tag such as `v0.2.0` in **Choose a tag** and pick **Create new tag on publish**, then press **Publish release**. A workflow then builds the daemon for Windows, macOS and Linux and attaches the files plus the extension zip to that release within about 10 minutes (progress is under the **Actions** tab).
+On GitHub, open **Releases → Draft a new release**, type a new tag such as `v0.2.0` in **Choose a tag** and pick **Create new tag on publish**, then press **Publish release**. A workflow then builds the daemon for Windows, macOS and Linux and attaches the files plus the extension zip to that release within about 10 minutes (progress is under the **Actions** tab). Alternatively, open **Actions → Release → Run workflow**, type the version (e.g. `v0.3.0`) and press **Run workflow**; that creates the tag and the release in one go.
 ___
 ## Security & Privacy
 

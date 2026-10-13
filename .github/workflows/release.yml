@@ -2,17 +2,27 @@ name: Release
 
 # Pushing a tag like v0.2.0 (or creating a release with a new tag in the GitHub
 # web UI) builds the daemon for each platform and publishes a GitHub Release.
-# Pull requests that change this file and manual runs only build, so the
-# workflow can be tested without publishing anything.
+# A manual run with a version (Actions tab -> Release -> Run workflow) does the
+# same and creates the tag itself. Pull requests that change this file and
+# manual runs without a version only build, so nothing is published.
 on:
   push:
     tags: ['v*']
   pull_request:
     paths: ['.github/workflows/release.yml']
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish, e.g. v0.2.0 (leave empty to only build)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
+
+env:
+  # The release name: the pushed tag, or the version typed into a manual run.
+  VERSION: ${{ inputs.version || github.ref_name }}
 
 jobs:
   build:
@@ -41,7 +51,7 @@ jobs:
       - name: Package
         shell: bash
         run: |
-          name="sovereign-daemon-${{ github.ref_name }}-${{ matrix.target }}"
+          name="sovereign-daemon-${VERSION}-${{ matrix.target }}"
           name="${name//\//-}"
           mkdir -p dist "$name"
           bin="daemon/target/${{ matrix.target }}/release/sovereign-daemon"
@@ -59,7 +69,7 @@ jobs:
           path: dist/*
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || startsWith(inputs.version, 'v')
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -70,15 +80,16 @@ jobs:
           merge-multiple: true
       - name: Zip the browser extension
         run: |
-          (cd extension && zip -r "../dist/sovereign-web-extension-${GITHUB_REF_NAME}.zip" .)
+          (cd extension && zip -r "../dist/sovereign-web-extension-${VERSION}.zip" .)
           ls -l dist
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           # If the release already exists (made in the web UI), just attach files.
-          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+          if gh release view "$VERSION" > /dev/null 2>&1; then
+            gh release upload "$VERSION" dist/* --clobber
           else
-            gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes
+            # --target creates the tag on this commit if it doesn't exist yet.
+            gh release create "$VERSION" dist/* --title "$VERSION" --generate-notes --target "$GITHUB_SHA"
           fi
