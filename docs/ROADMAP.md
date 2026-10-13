@@ -66,7 +66,7 @@ comes later.
     on two computers.
   - Test for the directory-traversal protection (`/../secret` must not escape).
 
-- [ ] **6. Security review**
+- [x] **6. Security review**
   - Review the whole daemon and extension for: resource exhaustion (slow or huge
     handshakes, unbounded connections; add timeouts and limits), anything that could
     leak clearnet traffic or DNS lookups, path traversal, panics on bad input.
@@ -85,3 +85,17 @@ comes later.
 - Run our own Iroh relay / address lookup server, or make the n0 defaults configurable, so
   n0.computer doesn't see users' IP addresses and keys.
 - Reuse one Iroh connection per peer instead of one per browser connection (faster pages).
+- From the task 6 security review (not fixed because they need more design or code than
+  they're worth right now):
+  - **Idle connections:** after the handshake, a tunnel or browser connection that stays
+    open but silent is not cut off by the daemon (Iroh's own idle timeout and the 64/256
+    connection limits bound the damage). An idle timeout on the copy loops would close it.
+  - **Per-peer limits:** one peer can use all 64 visitor slots. Per-peer quotas or rate
+    limits would stop one visitor from crowding out others.
+  - **Incognito windows:** the extension only sets the proxy for normal windows. Setting it
+    for incognito too (when the user allows the extension there) needs testing in each
+    browser.
+  - **Daemon not running:** the extension could warn when the daemon isn't reachable
+    (already listed above as "Extension shows whether the daemon is running").
+  - **Secret key at rest:** `secret.key` is protected only by file permissions; encrypting
+    it with a password would protect against someone who can read your files.

@@ -196,3 +196,14 @@ async fn served_folder_is_reachable_through_tunnel() {
 
     std::fs::remove_dir_all(&tmp).unwrap();
 }
+
+/// A client that connects and then says nothing must not hold a slot forever.
+#[tokio::test]
+async fn silent_client_is_disconnected() {
+    let daemon = start_daemon(None).await;
+    let mut stream = TcpStream::connect(daemon).await.unwrap();
+    tokio::time::pause(); // fast-forward through the 10 s handshake timeout
+    let mut buf = [0u8; 1];
+    let n = stream.read(&mut buf).await.unwrap_or(0);
+    assert_eq!(n, 0, "daemon should close the connection");
+}
