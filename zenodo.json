@@ -1,0 +1,35 @@
+{
+  "title": "Iroh Socks Proxy",
+  "description": "A local-first, decentralized P2P web overlay for digital sovereignty. Combines an async SOCKS5 loopback daemon in Rust (Tokio) with a Manifest V3 browser extension to intercept and route custom .anon domains, completely bypassed from standard DNS. Ready for Iroh P2P integration.",
+  "creators": [
+    {
+      "name": "Jacklin, Zanno",
+      "affiliation": "Creepybits",
+      "orcid": "0000-0001-9164-4650"
+    }
+  ],
+  "access_right": "open",
+  "license": "MIT",
+  "upload_type": "software",
+  "keywords": [
+    "Consorship Resistance",
+    "Chrome Extension",
+    "Decantralization",
+    "iroh",
+    "p2p",
+    "Privacy",
+    "Rust",
+    "Socks 5 Proxy",
+    "Tokio",
+    "Web Extension"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://zanno.se/iroh-socks-proxy-p2p-web-update/",
+      "relation": "isDescribedBy",
+      "resource_type": "publication-technicalnote",
+      "scheme": "url"
+    }
+  ],
+  "communities": []
+}
