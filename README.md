@@ -36,6 +36,7 @@ Unlike legacy P2P browsers that try to run heavy network stacks directly in sand
 - **Publish Your Own Site:** `--serve <folder>` publishes a folder of web pages at your `.anon` address, using a small built-in file server. `--forward 127.0.0.1:<port>` publishes a web server already running on your computer instead. See [Publish your own .anon site](#publish-your-own-anon-site).
 - **Air-Gap Mode:** Everything that is not `.anon` (normal websites, raw IP addresses) is refused with the SOCKS reply "host unreachable". Normal websites are intentionally **not** forwarded: reaching them through other nodes in the network is a later, still undecided design step. While the toggle is ON, only `.anon` sites load.
 - **WebRTC Leak Protection:** While the toggle is ON, the extension tells the browser not to send WebRTC traffic outside the proxy (where it could reveal your real IP address).
+- **Test Site:** Currently runing at adress: `http://6bbjgq88ox3dmdq3dfks3faf46c8akbqh9eei7cnhb7bqxwxr3xo.anon` (must have deamon running locally to access it).
 
 ---
 
@@ -105,7 +106,7 @@ You need two computers, each with the daemon (see Option A or B above). Call the
    With a downloaded build, run `sovereign-daemon --serve path/to/my-site` instead (Windows: `sovereign-daemon.exe --serve path\to\my-site`).
 3. The daemon prints your address, for example:
    ```text
-   🔑 Your .anon address: qm5i78frnziufjtqjbkzqbqxr9qq9mo9sc5zm8skrfddz6gqmqzo.anon
+   🔑 Your .anon address: 6bbjgq88ox3dmdq3dfks3faf46c8akbqh9eei7cnhb7bqxwxr3xo.anon
    📂 Publishing /home/you/my-site at that address.
    ```
    Copy that address and send it to the visitor. Keep the daemon running; the site is online only while it runs.
