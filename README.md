@@ -48,7 +48,7 @@ Open the [Releases page](https://github.com/Creepybits/iroh-socks-proxy/releases
 * the daemon for your system: `...-x86_64-pc-windows-msvc.zip` (Windows), `...-aarch64-apple-darwin.tar.gz` (Mac with Apple chip), `...-x86_64-apple-darwin.tar.gz` (older Intel Mac) or `...-x86_64-unknown-linux-gnu.tar.gz` (Linux);
 * `sovereign-web-extension-....zip`, the browser extension.
 
-Unpack both. Start the daemon by running `sovereign-daemon` (Windows: `sovereign-daemon.exe`) from a terminal, then continue with Step 2 below, selecting the unpacked extension folder. The builds are not signed, so Windows SmartScreen or macOS Gatekeeper may warn you the first time (on macOS: right-click the file, then choose **Open**).
+Unpack both. Start the daemon by running `sovereign-daemon` (Windows PowerShell: `.\sovereign-daemon.exe`, with the `.\` in front) from a terminal opened in the unpacked folder, then continue with Step 2 below, selecting the unpacked extension folder. The builds are not signed, so Windows SmartScreen or macOS Gatekeeper may warn you the first time (on macOS: right-click the file, then choose **Open**).
 
 ### Option B: Build from source
 
@@ -104,7 +104,7 @@ You need two computers, each with the daemon (see Option A or B above). Call the
    ```bash
    cargo run -- --serve path/to/my-site
    ```
-   With a downloaded build, run `sovereign-daemon --serve path/to/my-site` instead (Windows: `sovereign-daemon.exe --serve path\to\my-site`).
+   With a downloaded build, run `sovereign-daemon --serve path/to/my-site` instead (Windows PowerShell: `.\sovereign-daemon.exe --serve path\to\my-site`).
 3. The daemon prints your address, for example:
    ```text
    🔑 Your .anon address: 6bbjgq88ox3dmdq3dfks3faf46c8akbqh9eei7cnhb7bqxwxr3xo.anon
@@ -136,7 +136,7 @@ It prints your address and waits. Send the address to person 2.
 ```bash
 sovereign-daemon --chat <person 1's address>
 ```
-(Windows: `sovereign-daemon.exe`; from source: `cargo run -- --chat ...` in the `daemon` folder.)
+(Windows PowerShell: `.\sovereign-daemon.exe`; from source: `cargo run -- --chat ...` in the `daemon` folder.)
 
 Once connected, type a message and press Enter. Messages from the other side show up as `<first 8 letters of their address>: text`. Press Ctrl+C to quit. When the caller quits, the waiting side waits for the next caller.
 
