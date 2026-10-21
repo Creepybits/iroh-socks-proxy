@@ -15,17 +15,35 @@ use std::time::Duration;
 
 use iroh::address_lookup::memory::MemoryLookup;
 use iroh::endpoint::{Connection, Incoming, RecvStream, SendStream, presets};
-use iroh::{Endpoint, EndpointAddr, RelayMode, SecretKey};
+use iroh::{Endpoint, EndpointAddr, RelayMode};
 use tokio::io::{AsyncRead, AsyncWrite, Join, ReadBuf};
 
 /// A peer's identity (its public key).
 pub use iroh::EndpointId as PeerId;
+/// A daemon's secret key; its public half is the daemon's identity.
+pub use iroh::SecretKey;
 
 /// Protocol name sent in the Iroh handshake; both sides must agree on it.
 pub const TUNNEL_ALPN: &[u8] = b"sovereign/tunnel/0";
+/// Protocol name for terminal chat (`--chat`), kept apart from site tunnels.
+pub const CHAT_ALPN: &[u8] = b"sovereign/chat/0";
+
+/// What other peers may open to us.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Accept {
+    /// Nothing: we only connect out (e.g. visiting sites).
+    Nothing,
+    /// Tunnels to our published site.
+    Tunnels,
+    /// Terminal chats.
+    Chat,
+}
 
 /// How long to wait for a peer before telling the browser it is unreachable.
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// How long [`Tunnel::finish`] waits for the peer to confirm it got our last bytes.
+const FINISH_TIMEOUT: Duration = Duration::from_secs(5);
 
 const KEY_FILE: &str = "secret.key";
 const ANON_SUFFIX: &str = ".anon";
@@ -108,13 +126,13 @@ pub struct P2p {
 impl P2p {
     /// Joins the public Iroh network: uses n0's relay servers and publishes this
     /// endpoint's address under its key so other peers can find it by key alone.
-    /// With `accept_tunnels`, other peers may open tunnels to us.
-    pub async fn bind_public(secret_key: SecretKey, accept_tunnels: bool) -> Result<Self, Error> {
+    /// `accept` says what other peers may open to us.
+    pub async fn bind_public(secret_key: SecretKey, accept: Accept) -> Result<Self, Error> {
         let lookup = MemoryLookup::new();
         let builder = Endpoint::builder(presets::N0)
             .secret_key(secret_key)
             .address_lookup(lookup.clone())
-            .alpns(alpns(accept_tunnels));
+            .alpns(alpns(accept));
         let endpoint = builder.bind().await?;
         Ok(Self { endpoint, lookup })
     }
@@ -122,7 +140,7 @@ impl P2p {
     /// An endpoint on 127.0.0.1 only, with no relays and no address lookup service.
     /// Peers must be added with [`P2p::add_peer_addr`]. Used by tests, so they never
     /// touch the internet.
-    pub async fn bind_local(secret_key: SecretKey, accept_tunnels: bool) -> Result<Self, Error> {
+    pub async fn bind_local(secret_key: SecretKey, accept: Accept) -> Result<Self, Error> {
         let lookup = MemoryLookup::new();
         let endpoint = Endpoint::builder(presets::Minimal)
             .secret_key(secret_key)
@@ -130,7 +148,7 @@ impl P2p {
             .clear_ip_transports()
             .bind_addr("127.0.0.1:0")?
             .address_lookup(lookup.clone())
-            .alpns(alpns(accept_tunnels))
+            .alpns(alpns(accept))
             .bind()
             .await?;
         Ok(Self { endpoint, lookup })
@@ -153,8 +171,17 @@ impl P2p {
 
     /// Opens a tunnel to `peer`, giving up after [`CONNECT_TIMEOUT`].
     pub async fn open_tunnel(&self, peer: PeerId) -> Result<Tunnel, Error> {
+        self.open(peer, TUNNEL_ALPN).await
+    }
+
+    /// Opens a chat stream to `peer`, giving up after [`CONNECT_TIMEOUT`].
+    pub async fn open_chat(&self, peer: PeerId) -> Result<Tunnel, Error> {
+        self.open(peer, CHAT_ALPN).await
+    }
+
+    async fn open(&self, peer: PeerId, alpn: &[u8]) -> Result<Tunnel, Error> {
         let open = async {
-            let conn = self.endpoint.connect(peer, TUNNEL_ALPN).await?;
+            let conn = self.endpoint.connect(peer, alpn).await?;
             let (send, recv) = conn.open_bi().await?;
             Ok::<_, Error>(Tunnel::new(conn, send, recv))
         };
@@ -194,11 +221,11 @@ impl IncomingTunnel {
     }
 }
 
-fn alpns(accept_tunnels: bool) -> Vec<Vec<u8>> {
-    if accept_tunnels {
-        vec![TUNNEL_ALPN.to_vec()]
-    } else {
-        Vec::new()
+fn alpns(accept: Accept) -> Vec<Vec<u8>> {
+    match accept {
+        Accept::Nothing => Vec::new(),
+        Accept::Tunnels => vec![TUNNEL_ALPN.to_vec()],
+        Accept::Chat => vec![CHAT_ALPN.to_vec()],
     }
 }
 
@@ -219,6 +246,14 @@ impl Tunnel {
 
     pub fn peer(&self) -> PeerId {
         self.conn.remote_id()
+    }
+
+    /// Tells the peer we're done sending and waits (up to [`FINISH_TIMEOUT`]) until it
+    /// has received everything we sent, so dropping the tunnel afterwards loses nothing.
+    pub async fn finish(&mut self) {
+        let send = self.io.writer_mut();
+        let _ = send.finish();
+        let _ = tokio::time::timeout(FINISH_TIMEOUT, send.stopped()).await;
     }
 
     /// Waits until the peer closes the connection. Call this after shutting down

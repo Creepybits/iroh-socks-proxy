@@ -2,6 +2,20 @@
 
 Newest first. Each entry: date, decision, why, alternatives considered.
 
+## 2026-10-21: Terminal chat as a `--chat` mode of the daemon
+
+- **Decision:** `--chat` runs the daemon as a terminal chat instead of the proxy: alone it
+  waits for callers, with an address it calls that address. Lines of text travel over an
+  Iroh stream with its own protocol name (`sovereign/chat/0`). One chat at a time, any
+  caller accepted, 4 KiB per message, and received text has control characters replaced.
+- **Why:** The owner wanted to show that the network carries direct person-to-person
+  communication, not only websites, and to test it alone on one computer (two windows
+  with different `--data-dir`). Reusing the daemon's binary and Iroh module is the
+  smallest way to get there; no new dependencies.
+- **Alternatives:** A chat web page published with `--forward` (works without code
+  changes, but the host's server sees every message and names aren't verified); a
+  separate desktop app (the long-term idea under "Later", much more work).
+
 ## 2026-10-13: Say plainly that `.anon` is encrypted, not anonymous
 
 - **Decision:** README and roadmap now state that connections are end-to-end encrypted but
