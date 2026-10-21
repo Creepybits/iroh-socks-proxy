@@ -136,6 +136,8 @@ comes later.
     receiving calls only works while the app is running (e.g. in the system tray), since
     push notifications would mean a middleman; calls through a relay add delay (voice
     usually fine, video may stutter); encrypted but not anonymous, like the sites.
+  - **Already done:** text chat in the terminal (`--chat`), using its own protocol name
+    (`sovereign/chat/0`) next to the site tunnels.
   - **Steps:** (1) a command-line voice call between two computers using `.anon`
     addresses; (2) a desktop window (e.g. Tauri: Rust core with a web-style interface);
     (3) contact list; (4) video.

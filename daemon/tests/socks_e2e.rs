@@ -10,7 +10,7 @@ use iroh::SecretKey;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 
-use sovereign_daemon::p2p::{self, P2p};
+use sovereign_daemon::p2p::{self, Accept, P2p};
 use sovereign_daemon::server;
 use sovereign_daemon::site::{self, Site};
 use sovereign_daemon::socks::{
@@ -133,8 +133,16 @@ fn spawn_peer(peer: Arc<P2p>) {
 
 #[tokio::test]
 async fn http_request_is_tunnelled_to_peer() {
-    let peer = Arc::new(P2p::bind_local(SecretKey::generate(), true).await.unwrap());
-    let local = Arc::new(P2p::bind_local(SecretKey::generate(), false).await.unwrap());
+    let peer = Arc::new(
+        P2p::bind_local(SecretKey::generate(), Accept::Tunnels)
+            .await
+            .unwrap(),
+    );
+    let local = Arc::new(
+        P2p::bind_local(SecretKey::generate(), Accept::Nothing)
+            .await
+            .unwrap(),
+    );
     local.add_peer_addr(peer.id(), peer.local_addrs()[0]);
     spawn_peer(peer.clone());
 
@@ -147,7 +155,11 @@ async fn http_request_is_tunnelled_to_peer() {
 
 #[tokio::test]
 async fn unknown_peer_is_unreachable() {
-    let local = Arc::new(P2p::bind_local(SecretKey::generate(), false).await.unwrap());
+    let local = Arc::new(
+        P2p::bind_local(SecretKey::generate(), Accept::Nothing)
+            .await
+            .unwrap(),
+    );
     let daemon = start_daemon(Some(local)).await;
     let nobody = SecretKey::generate().public();
     let (_, rep) = socks_connect(
@@ -170,11 +182,19 @@ async fn served_folder_is_reachable_through_tunnel() {
     std::fs::write(tmp.join("site/index.html"), "<h1>my anon site</h1>").unwrap();
     std::fs::write(tmp.join("secret"), "TOP SECRET").unwrap();
 
-    let publisher = Arc::new(P2p::bind_local(SecretKey::generate(), true).await.unwrap());
+    let publisher = Arc::new(
+        P2p::bind_local(SecretKey::generate(), Accept::Tunnels)
+            .await
+            .unwrap(),
+    );
     let site = Arc::new(Site::folder(&tmp.join("site")).unwrap());
     tokio::spawn(site::serve_tunnels(publisher.clone(), site));
 
-    let visitor = Arc::new(P2p::bind_local(SecretKey::generate(), false).await.unwrap());
+    let visitor = Arc::new(
+        P2p::bind_local(SecretKey::generate(), Accept::Nothing)
+            .await
+            .unwrap(),
+    );
     visitor.add_peer_addr(publisher.id(), publisher.local_addrs()[0]);
     let daemon = start_daemon(Some(visitor)).await;
     let host = p2p::anon_address(&publisher.id());

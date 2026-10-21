@@ -34,6 +34,7 @@ Unlike legacy P2P browsers that try to run heavy network stacks directly in sand
 - **Custom TLD Interception:** Automatic interception and local resolution of `.anon` domains, bypassed entirely from standard DNS. `testsite.anon` shows a built-in landing page that works even offline.
 - **Peer Addresses over Iroh:** Every daemon has its own `.anon` address: its public key, written as 52 lowercase letters and digits, e.g. `zf6cpab6btawcun738ayciuyufppjj5gaxshs97srgu6f6kkfs7o.anon`. Visiting such an address opens an encrypted [Iroh](https://iroh.computer) connection to that peer and passes the browser's traffic through it. Like a Tor onion service, the address is a key and needs no domain registry; **unlike** Tor, the connection is direct, so it is encrypted but not anonymous (see [Security & Privacy](#security--privacy)). The key is created on first start and kept in a data folder, so the address never changes. Other `.anon` names that are not valid keys are refused.
 - **Publish Your Own Site:** `--serve <folder>` publishes a folder of web pages at your `.anon` address, using a small built-in file server. `--forward 127.0.0.1:<port>` publishes a web server already running on your computer instead. See [Publish your own .anon site](#publish-your-own-anon-site).
+- **Terminal Chat (demo):** `--chat` lets two people chat directly between their `.anon` addresses, end-to-end encrypted, with no server in between. See [Chat between two .anon addresses](#chat-between-two-anon-addresses).
 - **Air-Gap Mode:** Everything that is not `.anon` (normal websites, raw IP addresses) is refused with the SOCKS reply "host unreachable". Normal websites are intentionally **not** forwarded: reaching them through other nodes in the network is a later, still undecided design step. While the toggle is ON, only `.anon` sites load.
 - **WebRTC Leak Protection:** While the toggle is ON, the extension tells the browser not to send WebRTC traffic outside the proxy (where it could reveal your real IP address).
 - **Test Site:** Currently runing at adress: `http://6bbjgq88ox3dmdq3dfks3faf46c8akbqh9eei7cnhb7bqxwxr3xo.anon` (must have deamon running locally to access it).
@@ -121,6 +122,36 @@ You need two computers, each with the daemon (see Option A or B above). Call the
 * To publish something more dynamic, run any web server on the publisher (for a Python user: `python -m http.server 8000`) and start the daemon with `--forward 127.0.0.1:8000`. For safety, only addresses on the same computer are allowed.
 * Your address stays the same as long as you keep the `secret.key` file (see Step 1).
 * If the page doesn't load, check that both daemons print a `.anon` address (no Iroh warning) and that the visitor typed the address exactly.
+
+### Chat between two .anon addresses
+A small demo of direct messaging: no browser, no extension and no chat server. One side waits, the other calls its address, and the lines you type go straight to the other daemon over an encrypted Iroh connection. Your `.anon` address works like a phone number.
+
+**Person 1 (waits):**
+```bash
+sovereign-daemon --chat
+```
+It prints your address and waits. Send the address to person 2.
+
+**Person 2 (calls):**
+```bash
+sovereign-daemon --chat <person 1's address>
+```
+(Windows: `sovereign-daemon.exe`; from source: `cargo run -- --chat ...` in the `daemon` folder.)
+
+Once connected, type a message and press Enter. Messages from the other side show up as `<first 8 letters of their address>: text`. Press Ctrl+C to quit. When the caller quits, the waiting side waits for the next caller.
+
+**Only one computer?** Open two terminal windows and give each its own identity with `--data-dir` (any folder name works; it holds that identity's key):
+```bash
+sovereign-daemon --chat --data-dir alice
+sovereign-daemon --chat <alice's address> --data-dir bob
+```
+The messages still travel through Iroh, exactly as they would between two computers.
+
+**Good to know:**
+* Chat mode runs instead of the proxy. If the proxy is already running with the same key, give the chat its own `--data-dir`, since one key should only be online once at a time.
+* Anyone who knows your address can call while you wait; chats are one at a time. Names are proven by the encryption: the caller's address shown is really theirs.
+* Received text is cleaned before it's shown, so a peer can't send terminal control codes. Messages are limited to 4 KiB each.
+* Same privacy as sites: encrypted end to end, but not anonymous (the other side can see your IP address).
 
 ### Run with Docker
 Every push to `Master` publishes a ready-made image, `ghcr.io/creepybits/iroh-socks-proxy`. It runs as an unprivileged user and keeps its secret key in `/data`, so **always attach a volume there**, or the `.anon` address changes on every restart.

@@ -5,7 +5,8 @@ use std::sync::Arc;
 use clap::Parser;
 use tokio::net::TcpListener;
 
-use sovereign_daemon::p2p::{self, P2p};
+use sovereign_daemon::chat;
+use sovereign_daemon::p2p::{self, Accept, P2p};
 use sovereign_daemon::server;
 use sovereign_daemon::site::{self, Site};
 
@@ -31,6 +32,16 @@ struct Args {
     /// e.g. 127.0.0.1:8000. Only 127.0.0.1 / [::1] addresses are allowed.
     #[arg(long, value_name = "ADDRESS")]
     forward: Option<SocketAddr>,
+
+    /// Chat in this terminal instead of running the proxy. Alone, waits for someone
+    /// to call you; with a .anon address, calls that address.
+    #[arg(
+        long,
+        value_name = "ADDRESS",
+        num_args = 0..=1,
+        conflicts_with_all = ["serve", "forward"]
+    )]
+    chat: Option<Option<String>>,
 }
 
 #[tokio::main]
@@ -50,6 +61,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             e
         )
     })?;
+
+    if let Some(peer) = args.chat {
+        let peer = match peer {
+            Some(address) => Some(parse_chat_address(&address)?),
+            None => None,
+        };
+        return chat::run(secret_key, peer)
+            .await
+            .map_err(|e| format!("chat failed: {}", e).into());
+    }
 
     // Check the site settings before anything starts, so mistakes fail fast.
     let site = match (&args.serve, args.forward) {
@@ -71,7 +92,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     println!("🛡️  Air-Gap Mode Active: Non-.anon traffic will be instantly dropped.");
 
-    let p2p = match P2p::bind_public(secret_key, site.is_some()).await {
+    let accept = if site.is_some() {
+        Accept::Tunnels
+    } else {
+        Accept::Nothing
+    };
+    let p2p = match P2p::bind_public(secret_key, accept).await {
         Ok(p2p) => {
             let p2p = Arc::new(p2p);
             println!("🔑 Your .anon address: {}", p2p::anon_address(&p2p.id()));
@@ -104,4 +130,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     server::run(listener, p2p).await;
     Ok(())
+}
+
+/// Accepts a chat address with or without the `.anon` ending.
+fn parse_chat_address(address: &str) -> Result<p2p::PeerId, String> {
+    let address = address.trim();
+    let full = if address.to_ascii_lowercase().ends_with(".anon") {
+        address.to_string()
+    } else {
+        format!("{}.anon", address)
+    };
+    p2p::parse_anon_address(&full)
+        .ok_or_else(|| format!("{} is not a valid .anon address", address))
 }
