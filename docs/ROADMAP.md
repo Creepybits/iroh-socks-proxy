@@ -121,3 +121,21 @@ comes later.
     (already listed above as "Extension shows whether the daemon is running").
   - **Secret key at rest:** `secret.key` is protected only by file permissions; encrypting
     it with a password would protect against someone who can read your files.
+- **Voice and video calls between `.anon` addresses** (a separate desktop app, not part
+  of the browser proxy). Your `.anon` address works like a phone number: the app calls
+  another address and the same app on the other side rings. Today's proxy can't do this:
+  it only handles CONNECT (web-page style) connections, browser calls (WebRTC) send UDP
+  that bypasses the proxy, and Air-Gap Mode would block them anyway.
+  - **Shape:** one desktop app with the Iroh code built in (no separate daemon or
+    extension), reusing this project's Iroh module. Likely a separate repository.
+  - **Pieces:** ringing (call request / accept / decline as small messages on an Iroh
+    connection); audio captured from the microphone, compressed with Opus and sent as
+    Iroh datagrams (late packets are dropped, not waited for); a contact list mapping
+    names to addresses; video later.
+  - **Hard parts:** call quality (echo cancellation, smoothing uneven network timing);
+    receiving calls only works while the app is running (e.g. in the system tray), since
+    push notifications would mean a middleman; calls through a relay add delay (voice
+    usually fine, video may stutter); encrypted but not anonymous, like the sites.
+  - **Steps:** (1) a command-line voice call between two computers using `.anon`
+    addresses; (2) a desktop window (e.g. Tauri: Rust core with a web-style interface);
+    (3) contact list; (4) video.
