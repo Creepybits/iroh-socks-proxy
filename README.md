@@ -195,7 +195,7 @@ ___
 
 What this prototype protects against, and what it doesn't (reviewed in roadmap task 6):
 
-* **Normal websites can't leak around it.** While the toggle is ON, the browser sends everything to the daemon, with nothing exempt. The daemon refuses every non-`.anon` host and never looks up names in DNS itself: the browser hands the name to the proxy, and `.anon` names are decoded locally. WebRTC is told to stay inside the proxy. If the daemon isn't running, pages fail to load instead of going around it.
+* **Normal websites can't leak around it.** While the toggle is ON, the browser sends everything to the daemon, with nothing exempt. The daemon refuses every non-`.anon` host and never looks up the sites you visit in DNS: the browser hands the name to the proxy, and `.anon` names are decoded locally. (To find the computer behind a key, Iroh does ask n0's lookup servers, which partly use DNS; they see the key, not the page. See below.) WebRTC is told to stay inside the proxy. If the daemon isn't running, pages fail to load instead of going around it.
 * **Browser limits to know about:** private/incognito windows are **not** covered unless you allow the extension in incognito, and Chrome always connects to `localhost` directly (that stays on your computer).
 * **The proxy is only reachable from your computer** (`127.0.0.1`), unless you deliberately pass another `--listen` address.
 * **Limits against overload:** at most 256 browser connections and 64 visiting peers at once; a client that doesn't finish its handshake within 10 seconds is disconnected; requests to a published site are limited to 8 KiB of headers and 10 seconds.
