@@ -124,8 +124,32 @@ You need two computers, each with the daemon (see Option A or B above). Call the
 * If the page doesn't load, check that both daemons print a `.anon` address (no Iroh warning) and that the visitor typed the address exactly.
 
 ### Chat between two .anon addresses
-A small demo of direct messaging: no browser, no extension and no chat server. One side waits, the other calls its address, and the lines you type go straight to the other daemon over an encrypted Iroh connection. Your `.anon` address works like a phone number.
+Direct messaging between two `.anon` addresses: no chat server, no account, no extension needed. Your `.anon` address works like a phone number. One person waits, the other calls their address, and messages go straight between the two computers over an encrypted Iroh connection.
 
+There are two ways to chat, and they work together (one person can use the app, the other the terminal):
+
+#### The chat app (easiest)
+**Start it:**
+* **Windows:** open the folder with `sovereign-daemon.exe`, right-click an empty spot and choose **Open in Terminal**, then type `.\sovereign-daemon.exe --chat-app` and press Enter.
+* **macOS / Linux:** open a terminal in the folder and type `./sovereign-daemon --chat-app`.
+* **From source:** `cargo run -- --chat-app` in the `daemon` folder.
+
+> **Double-clicking `sovereign-daemon.exe` does not start the chat app.** It starts the browser proxy instead (the window says "Sovereign daemon bound strictly to 127.0.0.1:9999"). The chat app needs the extra `--chat-app`.
+>
+> **Want to start it with a double-click?** In the same folder, create a text file, rename it to `Start chat.bat` (say yes when Windows asks about changing the extension), open it in Notepad, paste the line below and save. Double-clicking `Start chat.bat` then opens the chat app.
+> ```bat
+> sovereign-daemon.exe --chat-app
+> ```
+
+**Use it:**
+1. A chat page opens in your browser. (If it doesn't, copy the `http://127.0.0.1:…` address shown in the terminal into your browser.)
+2. Your own address is at the top. Click **Copy my address** and send it to the person you want to chat with, or paste their address into the box and click **Call**.
+3. When the 🔒 line says "Chatting with …", type a message and press Enter. **Hang up** ends the chat.
+4. Keep the terminal window open while you chat; closing it closes the app.
+
+How it stays private: the page only talks to the program on your own computer (127.0.0.1), and the program encrypts everything it sends to the other side. The page's address contains a random secret, so other websites open in your browser can't read or send your messages. Don't share that `http://127.0.0.1…` address; share your `.anon` address.
+
+#### The terminal chat
 **Person 1 (waits):**
 ```bash
 sovereign-daemon --chat
@@ -140,20 +164,13 @@ sovereign-daemon --chat <person 1's address>
 
 Once connected, type a message and press Enter. Messages from the other side show up as `<first 8 letters of their address>: text`. Press Ctrl+C to quit. When the caller quits, the waiting side waits for the next caller.
 
-**Only one computer?** Open two terminal windows and give each its own identity with `--data-dir` (any folder name works; it holds that identity's key):
-```bash
-sovereign-daemon --chat --data-dir alice
-sovereign-daemon --chat <alice's address> --data-dir bob
-```
-The messages still travel through Iroh, exactly as they would between two computers.
-
-**Prefer a window to the terminal?** Start the chat app instead:
+#### Testing on one computer
+Every copy of the program on the same computer uses the same key, and so **the same address**, unless you give it its own identity with `--data-dir`. Two copies with the same address can't call each other. So start the second copy with `--data-dir` and any folder name (the folder is created where the terminal is open and holds that test identity's key; delete it when you're done):
 ```bash
 sovereign-daemon --chat-app
+sovereign-daemon --chat-app --data-dir bob
 ```
-It opens a chat page in your browser (if it doesn't, copy the `http://127.0.0.1:…` address it prints into the browser). Your address is at the top with a copy button; paste someone's address and click **Call**, or just wait for them to call you. The app and `--chat` talk to each other, so one person can use the terminal and the other the app. Keep the terminal window open while you chat; closing it ends the app.
-
-How it stays private: the page only talks to the daemon on your own computer (127.0.0.1), and the daemon encrypts everything it sends to the other side, exactly like `--chat`. The page's address contains a random secret, so other websites open in your browser can't read or send your messages. Don't share that `http://127.0.0.1…` address; share your `.anon` address.
+(The same works with `--chat`.) Check that the two pages show different addresses, then call one from the other. The messages still travel through Iroh, exactly as they would between two computers.
 
 **Good to know:**
 * Chat mode (and the chat app) runs instead of the proxy. If the proxy is already running with the same key, give the chat its own `--data-dir`, since one key should only be online once at a time.
