@@ -18,12 +18,12 @@ Unlike legacy P2P browsers that try to run heavy network stacks directly in sand
                                                              |
                                                    [ .anon Custom TLD ]
                                                              |
-                                                   [ P2P Overlay (Iroh, planned) ]
+                                                   [ P2P Overlay (Iroh) ]
 ```
 
 1. **The Browser Extension (Manifest V3):** Purely acts as a configuration switch, utilizing `chrome.proxy` to route browser traffic to the local loopback interface on port `9999`.
 2. **The Local Daemon (Rust / Tokio):** A high-performance background service that acts as a SOCKS5 proxy, intercepts requests, and handles alternative domain resolution locally.
-3. **P2P Integration (Iroh, planned):** Will serve as the decentralized backbone, bypassing centralized DNS registries and streaming content securely from peers.
+3. **P2P Integration (Iroh):** The decentralized backbone. A `.anon` address is a peer's public key, so no DNS registry is needed, and traffic travels between peers over encrypted Iroh connections.
 
 ---
 
@@ -255,7 +255,7 @@ ___
 ## Technical Roadmap
 - [x] Phase 1: Core async SOCKS5 proxy loopback bound to 127.0.0.1:9999
 - [x] Phase 2: Manifest V3 extension proxy-management interface and local `.anon` domain interception
-- [ ] Phase 3: Integrate the Iroh P2P protocol: a `.anon` address is a peer's public key, and visiting it tunnels the browser's traffic to that peer over an encrypted Iroh connection (key-based addresses like a Tor onion service, but direct rather than anonymous). Content-addressed storage (`iroh-blobs`) comes later. See `docs/ROADMAP.md`.
+- [x] Phase 3: Integrate the Iroh P2P protocol: a `.anon` address is a peer's public key, and visiting it tunnels the browser's traffic to that peer over an encrypted Iroh connection (key-based addresses like a Tor onion service, but direct rather than anonymous). Content-addressed storage (`iroh-blobs`) comes later. See `docs/ROADMAP.md`.
 - [ ] Phase 4: Implement automatic, local Root CA certificate generation to handle dynamic local TLS handshakes (resolving the browser's "Not Secure" warning over loopback).
 
 ___
@@ -265,7 +265,7 @@ This project is a collaborative, open-source effort to build a truly sovereign w
 
 Specifically, we are looking for help with:
 *   **Systems Programming (Rust):** Building the local Root CA certificate manager and handling dynamic TLS handshakes (Phase 4).
-*   **P2P Architecture:** Integrating the `iroh` node for content routing and block streaming (Phase 3).
+*   **P2P Architecture:** Content-addressed storage and mirroring of sites with `iroh-blobs` (the next step after Phase 3).
 *   **Browser Extension (JS):** Optimizing the Manifest V3 background port and PAC configurations.
 
 Feel free to open an issue, start a discussion, or submit a pull request!
