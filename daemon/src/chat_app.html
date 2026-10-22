@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Sovereign Chat</title>
+<style>
+  :root { --bg: #f6f6f4; --panel: #fff; --text: #1d1d1b; --muted: #6b6b66; --line: #ddddd8;
+          --mine: #2f5d50; --mine-text: #fff; --theirs: #ecece8; --accent: #2f5d50; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #151514; --panel: #1f1f1d; --text: #ececea; --muted: #9a9a94; --line: #34342f;
+            --mine: #4c8a78; --mine-text: #fff; --theirs: #2b2b28; --accent: #6fb39f; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 16px; height: 100vh;
+         display: flex; flex-direction: column; gap: 12px; }
+  h1 { font-size: 18px; margin: 0; }
+  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .me { display: flex; gap: 8px; align-items: center; }
+  .me code { flex: 1; overflow-wrap: anywhere; font-size: 13px; color: var(--muted); }
+  .row { display: flex; gap: 8px; }
+  input { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
+          background: var(--bg); color: var(--text); font: inherit; }
+  button { padding: 8px 14px; border: 0; border-radius: 8px; background: var(--accent); color: #fff;
+           font: inherit; cursor: pointer; }
+  button.plain { background: transparent; color: var(--accent); border: 1px solid var(--line); }
+  button:disabled, input:disabled { opacity: .5; cursor: default; }
+  #state { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
+  #log { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+  .msg { max-width: 80%; padding: 6px 10px; border-radius: 12px; overflow-wrap: anywhere; white-space: pre-wrap; }
+  .mine { align-self: flex-end; background: var(--mine); color: var(--mine-text); }
+  .theirs { align-self: flex-start; background: var(--theirs); }
+  .note { align-self: center; color: var(--muted); font-size: 13px; text-align: center; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Sovereign Chat</h1>
+  <div class="box me">
+    <code id="me">Connecting to the daemon…</code>
+    <button class="plain" id="copy">Copy my address</button>
+  </div>
+  <div class="box">
+    <div class="row">
+      <input id="address" placeholder="Their .anon address" autocomplete="off" spellcheck="false">
+      <button id="call">Call</button>
+      <button class="plain" id="hangup" disabled>Hang up</button>
+    </div>
+    <div id="state" style="margin-top:8px"></div>
+  </div>
+  <div class="box" id="log" aria-live="polite"></div>
+  <form class="row" id="form">
+    <input id="text" placeholder="Type a message" autocomplete="off" disabled>
+    <button id="send" disabled>Send</button>
+  </form>
+</main>
+<script>
+  // Everything from the daemon is shown with textContent, never as HTML.
+  const token = new URLSearchParams(location.search).get("t") || "";
+  const $ = (id) => document.getElementById(id);
+  let myAddress = "";
+
+  function add(text, kind) {
+    const div = document.createElement("div");
+    div.className = "msg " + kind;
+    div.textContent = text;
+    $("log").appendChild(div);
+    $("log").scrollTop = $("log").scrollHeight;
+  }
+
+  async function post(path, body) {
+    const res = await fetch(path + "?t=" + encodeURIComponent(token), { method: "POST", body });
+    if (!res.ok) add(await res.text(), "note");
+    return res.ok;
+  }
+
+  function showState(state) {
+    const chatting = state.startsWith("chatting ");
+    const busy = state !== "idle";
+    $("call").disabled = busy;
+    $("address").disabled = busy;
+    $("hangup").disabled = !chatting;
+    $("text").disabled = !chatting;
+    $("send").disabled = !chatting;
+    if (chatting) {
+      $("state").textContent = "🔒 Chatting with " + state.slice(9) + " (end-to-end encrypted)";
+      add("Connected.", "note");
+      $("text").focus();
+    } else if (busy) {
+      $("state").textContent = "📞 Calling " + state.slice(8) + "…";
+    } else {
+      $("state").textContent = "👂 Waiting. Share your address, or call someone.";
+    }
+  }
+
+  const events = new EventSource("events?t=" + encodeURIComponent(token));
+  events.addEventListener("me", (e) => { myAddress = e.data; $("me").textContent = e.data; });
+  events.addEventListener("state", (e) => showState(e.data));
+  events.addEventListener("status", (e) => add(e.data, "note"));
+  events.addEventListener("msg", (e) => {
+    // Lines look like "<short id>: text"; anything else is a notice from the daemon.
+    const m = /^([a-z0-9]{8}): ([\s\S]*)$/.exec(e.data);
+    if (m) add(m[2], "theirs"); else add(e.data, "note");
+  });
+  events.onerror = () => { $("state").textContent = "⚠️ Lost contact with the daemon. Is it still running?"; };
+
+  $("copy").onclick = () => navigator.clipboard && navigator.clipboard.writeText(myAddress);
+  $("call").onclick = () => { const a = $("address").value.trim(); if (a) post("call", a); };
+  $("address").addEventListener("keydown", (e) => { if (e.key === "Enter") $("call").click(); });
+  $("hangup").onclick = () => post("hangup", "");
+  $("form").onsubmit = async (e) => {
+    e.preventDefault();
+    const text = $("text").value;
+    if (!text.trim()) return;
+    $("text").value = "";
+    if (await post("send", text)) add(text, "mine");
+  };
+</script>
+</body>
+</html>

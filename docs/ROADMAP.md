@@ -137,7 +137,8 @@ comes later.
     push notifications would mean a middleman; calls through a relay add delay (voice
     usually fine, video may stutter); encrypted but not anonymous, like the sites.
   - **Already done:** text chat in the terminal (`--chat`), using its own protocol name
-    (`sovereign/chat/0`) next to the site tunnels.
+    (`sovereign/chat/0`) next to the site tunnels, and the same chat as a page in the
+    browser (`--chat-app`), which could become the interface of the desktop window.
   - **Steps:** (1) a command-line voice call between two computers using `.anon`
     addresses; (2) a desktop window (e.g. Tauri: Rust core with a web-style interface);
     (3) contact list; (4) video.

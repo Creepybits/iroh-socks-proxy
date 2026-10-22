@@ -34,7 +34,7 @@ Unlike legacy P2P browsers that try to run heavy network stacks directly in sand
 - **Custom TLD Interception:** Automatic interception and local resolution of `.anon` domains, bypassed entirely from standard DNS. `testsite.anon` shows a built-in landing page that works even offline.
 - **Peer Addresses over Iroh:** Every daemon has its own `.anon` address: its public key, written as 52 lowercase letters and digits, e.g. `zf6cpab6btawcun738ayciuyufppjj5gaxshs97srgu6f6kkfs7o.anon`. Visiting such an address opens an encrypted [Iroh](https://iroh.computer) connection to that peer and passes the browser's traffic through it. Like a Tor onion service, the address is a key and needs no domain registry; **unlike** Tor, the connection is direct, so it is encrypted but not anonymous (see [Security & Privacy](#security--privacy)). The key is created on first start and kept in a data folder, so the address never changes. Other `.anon` names that are not valid keys are refused.
 - **Publish Your Own Site:** `--serve <folder>` publishes a folder of web pages at your `.anon` address, using a small built-in file server. `--forward 127.0.0.1:<port>` publishes a web server already running on your computer instead. See [Publish your own .anon site](#publish-your-own-anon-site).
-- **Terminal Chat (demo):** `--chat` lets two people chat directly between their `.anon` addresses, end-to-end encrypted, with no server in between. See [Chat between two .anon addresses](#chat-between-two-anon-addresses).
+- **Chat (demo):** `--chat` lets two people chat directly between their `.anon` addresses, end-to-end encrypted, with no server in between. `--chat-app` does the same in a simple page in your browser. See [Chat between two .anon addresses](#chat-between-two-anon-addresses).
 - **Air-Gap Mode:** Everything that is not `.anon` (normal websites, raw IP addresses) is refused with the SOCKS reply "host unreachable". Normal websites are intentionally **not** forwarded: reaching them through other nodes in the network is a later, still undecided design step. While the toggle is ON, only `.anon` sites load.
 - **WebRTC Leak Protection:** While the toggle is ON, the extension tells the browser not to send WebRTC traffic outside the proxy (where it could reveal your real IP address).
 - **Test Site:** Currently runing at adress: `http://6bbjgq88ox3dmdq3dfks3faf46c8akbqh9eei7cnhb7bqxwxr3xo.anon` (must have deamon running locally to access it).
@@ -147,8 +147,16 @@ sovereign-daemon --chat <alice's address> --data-dir bob
 ```
 The messages still travel through Iroh, exactly as they would between two computers.
 
+**Prefer a window to the terminal?** Start the chat app instead:
+```bash
+sovereign-daemon --chat-app
+```
+It opens a chat page in your browser (if it doesn't, copy the `http://127.0.0.1:…` address it prints into the browser). Your address is at the top with a copy button; paste someone's address and click **Call**, or just wait for them to call you. The app and `--chat` talk to each other, so one person can use the terminal and the other the app. Keep the terminal window open while you chat; closing it ends the app.
+
+How it stays private: the page only talks to the daemon on your own computer (127.0.0.1), and the daemon encrypts everything it sends to the other side, exactly like `--chat`. The page's address contains a random secret, so other websites open in your browser can't read or send your messages. Don't share that `http://127.0.0.1…` address; share your `.anon` address.
+
 **Good to know:**
-* Chat mode runs instead of the proxy. If the proxy is already running with the same key, give the chat its own `--data-dir`, since one key should only be online once at a time.
+* Chat mode (and the chat app) runs instead of the proxy. If the proxy is already running with the same key, give the chat its own `--data-dir`, since one key should only be online once at a time.
 * Anyone who knows your address can call while you wait; chats are one at a time. Names are proven by the encryption: the caller's address shown is really theirs.
 * Received text is cleaned before it's shown, so a peer can't send terminal control codes. Messages are limited to 4 KiB each.
 * Same privacy as sites: encrypted end to end, but not anonymous (the other side can see your IP address).

@@ -2,6 +2,27 @@
 
 Newest first. Each entry: date, decision, why, alternatives considered.
 
+## 2026-10-22: Chat app as a browser page served by the daemon (`--chat-app`)
+
+- **Decision:** `--chat-app` runs the same chat as `--chat`, but the daemon serves a
+  small page on a free port on 127.0.0.1 and opens it in the browser. The page talks to
+  the daemon with plain HTTP (server-sent events for incoming text, POST for calling,
+  sending and hanging up); the daemon carries the chat over the same Iroh protocol
+  (`sovereign/chat/0`), so app and terminal users can chat. Every request must carry a
+  random token from the page's URL. The page is built into the binary; no new
+  dependencies. Callers now send an empty "hello" line on connecting, and empty lines
+  are not shown, so the waiting side sees a caller join right away (before, only after
+  their first message). Typed text now goes out before a peer's hang-up is noticed.
+- **Why:** The owner asked for the easiest app for chat mode, without weakening
+  end-to-end encryption. The encryption still happens in the daemon, between the two
+  computers; the page-to-daemon leg never leaves this computer. The token stops other
+  websites in the same browser from using the local page (they can reach 127.0.0.1, but
+  can't learn the token). Reusing the binary means the existing release builds ship it.
+- **Alternatives:** A Tauri desktop app (real window, but a new project with heavier
+  builds and signing; the page could become its interface later); a native GUI (egui;
+  big dependencies, interface not reusable); WebSockets instead of server-sent events
+  (would need a new dependency or more hand-written protocol code).
+
 ## 2026-10-21: Terminal chat as a `--chat` mode of the daemon
 
 - **Decision:** `--chat` runs the daemon as a terminal chat instead of the proxy: alone it

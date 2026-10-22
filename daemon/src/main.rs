@@ -5,10 +5,10 @@ use std::sync::Arc;
 use clap::Parser;
 use tokio::net::TcpListener;
 
-use sovereign_daemon::chat;
 use sovereign_daemon::p2p::{self, Accept, P2p};
 use sovereign_daemon::server;
 use sovereign_daemon::site::{self, Site};
+use sovereign_daemon::{chat, chat_app};
 
 /// Local SOCKS5 proxy for the Sovereign Web.
 #[derive(Parser)]
@@ -42,6 +42,11 @@ struct Args {
         conflicts_with_all = ["serve", "forward"]
     )]
     chat: Option<Option<String>>,
+
+    /// Chat in a page in your browser instead of the terminal. The page is served on
+    /// 127.0.0.1 only; messages to the other side are end-to-end encrypted as with --chat.
+    #[arg(long, conflicts_with_all = ["serve", "forward", "chat"])]
+    chat_app: bool,
 }
 
 #[tokio::main]
@@ -62,9 +67,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
     })?;
 
+    if args.chat_app {
+        return chat_app::run(secret_key)
+            .await
+            .map_err(|e| format!("chat app failed: {}", e).into());
+    }
+
     if let Some(peer) = args.chat {
         let peer = match peer {
-            Some(address) => Some(parse_chat_address(&address)?),
+            Some(address) => Some(chat::parse_address(&address)?),
             None => None,
         };
         return chat::run(secret_key, peer)
@@ -130,16 +141,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     server::run(listener, p2p).await;
     Ok(())
-}
-
-/// Accepts a chat address with or without the `.anon` ending.
-fn parse_chat_address(address: &str) -> Result<p2p::PeerId, String> {
-    let address = address.trim();
-    let full = if address.to_ascii_lowercase().ends_with(".anon") {
-        address.to_string()
-    } else {
-        format!("{}.anon", address)
-    };
-    p2p::parse_anon_address(&full)
-        .ok_or_else(|| format!("{} is not a valid .anon address", address))
 }

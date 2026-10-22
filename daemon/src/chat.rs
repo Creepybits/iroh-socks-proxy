@@ -32,7 +32,7 @@ pub async fn run(secret_key: SecretKey, peer: Option<PeerId>) -> Result<(), Erro
     match peer {
         Some(peer) => {
             println!("📞 Calling {}…", p2p::anon_address(&peer));
-            let tunnel = p2p.open_chat(peer).await.map_err(|e| {
+            let tunnel = call(&p2p, peer).await.map_err(|e| {
                 format!(
                     "could not reach that address ({}). Is the other side running `--chat` and online?",
                     e
@@ -58,6 +58,27 @@ pub async fn run(secret_key: SecretKey, peer: Option<PeerId>) -> Result<(), Erro
     }
     p2p.close().await;
     Ok(())
+}
+
+/// Calls `peer` and says hello with an empty line. The other side only notices a new
+/// stream once something is sent on it, so without this it wouldn't see us join until
+/// our first message. Empty lines are not shown.
+pub async fn call(p2p: &P2p, peer: PeerId) -> Result<Tunnel, Error> {
+    let mut tunnel = p2p.open_chat(peer).await?;
+    tunnel.write_all(b"\n").await?;
+    Ok(tunnel)
+}
+
+/// Accepts a chat address with or without the `.anon` ending.
+pub fn parse_address(address: &str) -> Result<PeerId, String> {
+    let address = address.trim();
+    let full = if address.to_ascii_lowercase().ends_with(".anon") {
+        address.to_string()
+    } else {
+        format!("{}.anon", address)
+    };
+    p2p::parse_anon_address(&full)
+        .ok_or_else(|| format!("{} is not a valid .anon address", address))
 }
 
 /// One conversation: each line from `input` goes to the peer, and each line from the
@@ -90,6 +111,9 @@ where
 
     loop {
         tokio::select! {
+            // Typed text goes out before we notice the peer has left, so a message
+            // typed just before they hang up is still sent.
+            biased;
             // `next_line` and `read` are both safe to cancel, so no text is lost
             // when the other branch wins.
             line = input.next_line(), if !input_done => match line? {
@@ -120,6 +144,9 @@ where
                 pending.extend_from_slice(&chunk[..n]);
                 while let Some(end) = pending.iter().position(|&b| b == b'\n') {
                     let line: Vec<u8> = pending.drain(..=end).collect();
+                    if line.trim_ascii().is_empty() {
+                        continue;
+                    }
                     say(output, &format!("{}: {}", name, clean(&line))).await?;
                 }
                 if pending.len() > MAX_LINE {
