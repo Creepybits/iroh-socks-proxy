@@ -94,6 +94,11 @@ pub fn load_or_create_secret_key(data_dir: &Path) -> io::Result<SecretKey> {
     }
 }
 
+/// A random secret (64 hex characters) for guarding local pages, such as the chat app.
+pub fn random_token() -> String {
+    to_hex(&SecretKey::generate().to_bytes())
+}
+
 fn to_hex(bytes: &[u8]) -> String {
     bytes.iter().fold(String::new(), |mut s, b| {
         let _ = write!(s, "{:02x}", b);
