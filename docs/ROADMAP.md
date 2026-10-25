@@ -82,6 +82,17 @@ comes later.
     and version tags.
   - A no-command-line guide for hosting on bunny.net Magic Containers.
 
+## Chat
+
+- [x] **8. Terminal chat**
+  - `--chat` waits for a caller; `--chat <address>` calls that `.anon` address. Lines of
+    text travel over an Iroh stream with its own protocol name (`sovereign/chat/0`).
+  - Received text is cleaned of control characters; 4 KiB per message.
+
+- [x] **9. Chat app**
+  - `--chat-app` serves the same chat as a page in the browser, reachable only from your
+    own computer behind a random secret in its address.
+
 ## Later (not now)
 
 - **Anonymity** (today connections are encrypted but direct, so sites see visitors' IP
@@ -136,9 +147,8 @@ comes later.
     receiving calls only works while the app is running (e.g. in the system tray), since
     push notifications would mean a middleman; calls through a relay add delay (voice
     usually fine, video may stutter); encrypted but not anonymous, like the sites.
-  - **Already done:** text chat in the terminal (`--chat`), using its own protocol name
-    (`sovereign/chat/0`) next to the site tunnels, and the same chat as a page in the
-    browser (`--chat-app`), which could become the interface of the desktop window.
+  - **Already done:** text chat (tasks 8 and 9 above). The chat app's page could become
+    the interface of the desktop window.
   - **Steps:** (1) a command-line voice call between two computers using `.anon`
     addresses; (2) a desktop window (e.g. Tauri: Rust core with a web-style interface);
     (3) contact list; (4) video.
