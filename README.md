@@ -129,6 +129,8 @@ Direct messaging between two `.anon` addresses: no chat server, no account, no e
 There are two ways to chat, and they work together (one person can use the app, the other the terminal):
 
 #### The chat app (easiest)
+![Two chat app windows talking to each other: each shows its own .anon address, the address it is chatting with, and the messages](docs/images/chat-app.png)
+
 **Start it:**
 * **Windows:** open the folder with `sovereign-daemon.exe`, right-click an empty spot and choose **Open in Terminal**, then type `.\sovereign-daemon.exe --chat-app` and press Enter.
 * **macOS / Linux:** open a terminal in the folder and type `./sovereign-daemon --chat-app`.
@@ -256,7 +258,10 @@ ___
 - [x] Phase 1: Core async SOCKS5 proxy loopback bound to 127.0.0.1:9999
 - [x] Phase 2: Manifest V3 extension proxy-management interface and local `.anon` domain interception
 - [x] Phase 3: Integrate the Iroh P2P protocol: a `.anon` address is a peer's public key, and visiting it tunnels the browser's traffic to that peer over an encrypted Iroh connection (key-based addresses like a Tor onion service, but direct rather than anonymous). Content-addressed storage (`iroh-blobs`) comes later. See `docs/ROADMAP.md`.
+- [x] Always-on hosting: a Docker image and a no-command-line guide for bunny.net (`docs/DEPLOY-BUNNY.md`).
+- [x] Direct chat between `.anon` addresses, end-to-end encrypted with no server in between: in the terminal (`--chat`) or as a page in your browser (`--chat-app`).
 - [ ] Phase 4: Implement automatic, local Root CA certificate generation to handle dynamic local TLS handshakes (resolving the browser's "Not Secure" warning over loopback).
+- [ ] Voice and video calls between `.anon` addresses (an idea for later; see `docs/ROADMAP.md`).
 
 ___
 ## Contributing
